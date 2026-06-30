@@ -14,7 +14,7 @@ import numpy as np
 
 from .igraph_io import igraph_to_treedata
 from .tree_data import TreeData
-from .needleman_wunsch_tree import AlignmentResult, WeightFn, align_trees_algorithm1
+from .needleman_wunsch_tree import AlignmentResult, WeightFn, align_trees_algorithm1, align_tree_to_repeating_template
 from .beam_align import CandidateFn, MatchPredicate, align_trees_beam, align_trees_beam_symmetric
 from .bucketable_weight import EqualityBucketWeight, assert_bucketable_weight
 from .sparse_preprocess import PreprocessedTree, preprocess_igraph
@@ -50,6 +50,7 @@ class TreePathMatcher:
         phi_name: str = "label",
         w: Optional[Any] = None,
         method: str = "exact",
+        mode: str = "unique",
         order: str = "auto",
         ts_field: Optional[str] = None,
         strict_tree: bool = True,
@@ -63,6 +64,7 @@ class TreePathMatcher:
         seed: int = 0,
         match_predicate: Optional[MatchPredicate] = None,
         prefer_match_on_tie: bool = True,
+        template_repeat_penalty: float = 0.0,
         max_nodes_per_key: Optional[int] = None,
         key_select_mode: str = "first",
         build_subtree_sketch: bool = False,
@@ -74,8 +76,17 @@ class TreePathMatcher:
         method = method.lower()
         if method not in {"exact", "beam", "sparse"}:
             raise ValueError("method must be one of: 'exact', 'beam', 'sparse'")
+        mode = mode.lower().strip()
+        if mode not in {"unique", "template_repeat"}:
+            raise ValueError("mode must be one of: 'unique', 'template_repeat'")
+        if mode == "template_repeat" and method != "exact":
+            raise ValueError("mode='template_repeat' is currently supported only with method='exact'")
+        template_repeat_penalty = float(template_repeat_penalty)
+        if template_repeat_penalty < 0.0:
+            raise ValueError("template_repeat_penalty must be nonnegative")
         self.phi_name = phi_name
         self.method = method
+        self.mode = mode
         self.order = order
         self.ts_field = ts_field
         self.strict_tree = strict_tree
@@ -89,6 +100,7 @@ class TreePathMatcher:
         self.seed = seed
         self.match_predicate = match_predicate
         self.prefer_match_on_tie = prefer_match_on_tie
+        self.template_repeat_penalty = template_repeat_penalty
         self.max_nodes_per_key = max_nodes_per_key
         self.key_select_mode = key_select_mode
         self.build_subtree_sketch = build_subtree_sketch
@@ -227,13 +239,23 @@ class TreePathMatcher:
             w_fn = self.w
 
         if self.method == "exact":
-            res = align_trees_algorithm1(
-                treeG,
-                treeH,
-                w=w_fn,
-                dtype=self.dtype,
-                prefer_match_on_tie=self.prefer_match_on_tie,
-            )
+            if self.mode == "template_repeat":
+                res = align_tree_to_repeating_template(
+                    treeG,
+                    treeH,
+                    w=w_fn,
+                    dtype=self.dtype,
+                    prefer_match_on_tie=self.prefer_match_on_tie,
+                    repeat_penalty=self.template_repeat_penalty,
+                )
+            else:
+                res = align_trees_algorithm1(
+                    treeG,
+                    treeH,
+                    w=w_fn,
+                    dtype=self.dtype,
+                    prefer_match_on_tie=self.prefer_match_on_tie,
+                )
         else:
             if self.beam_symmetric:
                 res = align_trees_beam_symmetric(
