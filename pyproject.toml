@@ -1,0 +1,90 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tree_matcher"
+version = "0.1.0"
+description = "Tree matching, embedding, subgraph matching, and exemplar extraction utilities."
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.23",
+    "pandas>=1.5",
+    "scipy>=1.9",
+    "scikit-learn>=1.1",
+    "igraph>=0.11",
+]
+
+[project.optional-dependencies]
+speedups = [
+    "numba>=0.58",
+]
+viz = [
+    "matplotlib>=3.7",
+    "seaborn>=0.12",
+]
+embedding = [
+    "umap-learn>=0.5",
+    "hdbscan>=0.8",
+    "pynndescent>=0.5",
+]
+neural = [
+    "torch>=2.0",
+]
+benchmark = [
+    "PyYAML>=6.0",
+]
+poa = [
+    "pyabpoa>=1.5",
+]
+notebooks = [
+    "ipykernel>=6.0",
+    "notebook>=7.0",
+    "matplotlib>=3.7",
+    "seaborn>=0.12",
+    "numba>=0.58",
+    "PyYAML>=6.0",
+    "umap-learn>=0.5",
+    "hdbscan>=0.8",
+    "pynndescent>=0.5",
+    "torch>=2.0",
+]
+dev = [
+    "pytest>=8.0",
+]
+all = [
+    "numba>=0.58",
+    "matplotlib>=3.7",
+    "seaborn>=0.12",
+    "umap-learn>=0.5",
+    "hdbscan>=0.8",
+    "pynndescent>=0.5",
+    "torch>=2.0",
+    "PyYAML>=6.0",
+    "pyabpoa>=1.5",
+    "ipykernel>=6.0",
+    "notebook>=7.0",
+    "pytest>=8.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = [
+    "benchmarking*",
+    "embedder*",
+    "exemplar*",
+    "path_matcher*",
+    "subgraph_match*",
+]
+exclude = [
+    "tests*",
+    "docs*",
+    "experiments*",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

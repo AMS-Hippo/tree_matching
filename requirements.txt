@@ -1,0 +1,3 @@
+# Convenience install for local development.
+# Runtime dependencies and optional extras are declared in pyproject.toml.
+-e .
