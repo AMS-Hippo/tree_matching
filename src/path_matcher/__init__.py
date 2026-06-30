@@ -4,7 +4,22 @@ from .tree_data import TreeData
 from .igraph_io import igraph_to_treedata, validate_igraph_ordering
 
 from .needleman_wunsch_tree import align_trees_algorithm1, align_tree_to_repeating_template, AlignmentResult, id_match
-from .beam_align import align_trees_beam, align_trees_beam_symmetric
+from .beam_align import (
+    BeamCandidateContext,
+    BeamCandidateHeuristicFn,
+    BeamExpansionContext,
+    BeamExpansionFn,
+    BeamHeuristicStats,
+    BeamPriorityFn,
+    BeamStateContext,
+    CandidateFn,
+    CandidateHeuristic,
+    ExpansionFn,
+    MatchPredicate,
+    PriorityFn,
+    align_trees_beam,
+    align_trees_beam_symmetric,
+)
 from .bucketable_weight import BucketableWeight, EqualityBucketWeight
 from .weight_wrappers import (
     make_bucketable_weight,
@@ -22,6 +37,18 @@ __all__ = [
     "validate_igraph_ordering",
     "align_trees_algorithm1",
     "align_tree_to_repeating_template",
+    "BeamCandidateContext",
+    "BeamCandidateHeuristicFn",
+    "BeamExpansionContext",
+    "BeamExpansionFn",
+    "BeamHeuristicStats",
+    "BeamPriorityFn",
+    "BeamStateContext",
+    "CandidateFn",
+    "CandidateHeuristic",
+    "ExpansionFn",
+    "MatchPredicate",
+    "PriorityFn",
     "align_trees_beam",
     "align_trees_beam_symmetric",
     "align_trees_sparse_candidates",

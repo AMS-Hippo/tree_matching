@@ -1,9 +1,5 @@
-
 """
-Second performance patch:
-- uses duck-typing for TreeData / PreprocessedTree detection, so benchmarks do not
-  silently miss the fast path because of module-identity mismatches;
-- keeps the specialized predict_weighted_reference(...) entry point for the old objective.
+High-level matcher interface for exact, beam, and sparse tree-path matching.
 """
 
 from __future__ import annotations
@@ -15,7 +11,15 @@ import numpy as np
 from .igraph_io import igraph_to_treedata
 from .tree_data import TreeData
 from .needleman_wunsch_tree import AlignmentResult, WeightFn, align_trees_algorithm1, align_tree_to_repeating_template
-from .beam_align import CandidateFn, MatchPredicate, align_trees_beam, align_trees_beam_symmetric
+from .beam_align import (
+    BeamCandidateHeuristicFn,
+    BeamExpansionFn,
+    BeamPriorityFn,
+    CandidateFn,
+    MatchPredicate,
+    align_trees_beam,
+    align_trees_beam_symmetric,
+)
 from .bucketable_weight import EqualityBucketWeight, assert_bucketable_weight
 from .sparse_preprocess import PreprocessedTree, preprocess_igraph
 from .sparse_align import SparseCandidateConfig, align_trees_sparse_candidates
@@ -56,11 +60,28 @@ class TreePathMatcher:
         strict_tree: bool = True,
         dtype: Any = np.float32,
         beam_width: int = 200,
-        beam_symmetric: bool = True,
+        beam_symmetric: bool = False,
+        beam_expansion_width: Optional[int] = 64,
+        beam_expansion_fn: Optional[BeamExpansionFn] = None,
+        beam_candidate_heuristic_fn: Optional[BeamCandidateHeuristicFn] = None,
+        beam_priority_fn: Optional[BeamPriorityFn] = None,
+        beam_min_match_score: float = 0.0,
+        beam_random_fraction: float = 0.10,
+        beam_n_restarts: int = 1,
+        beam_max_length: Optional[int] = None,
+        beam_max_label_pair_scan: int = 100_000,
+        beam_max_label_pairs_per_expansion: Optional[int] = 2_048,
+        beam_max_nodes_per_label_side: int = 8,
+        beam_rarity_weight: float = 0.25,
+        beam_gap_penalty: float = 0.03,
+        beam_balance_penalty: float = 0.01,
+        beam_candidate_future_weight: float = 0.03,
+        beam_priority_future_weight: float = 0.20,
+        beam_priority_length_weight: float = 0.0,
         candidate_fn: Optional[CandidateFn] = None,
-        max_candidates_per_label: Optional[int] = 200,
+        max_candidates_per_label: Optional[int] = None,
         max_candidates_per_u: Optional[int] = None,
-        candidate_select_mode: str = "first",
+        candidate_select_mode: str = "mixed",
         seed: int = 0,
         match_predicate: Optional[MatchPredicate] = None,
         prefer_match_on_tie: bool = True,
@@ -84,6 +105,23 @@ class TreePathMatcher:
         template_repeat_penalty = float(template_repeat_penalty)
         if template_repeat_penalty < 0.0:
             raise ValueError("template_repeat_penalty must be nonnegative")
+        if beam_width < 1:
+            raise ValueError("beam_width must be >= 1")
+        if beam_expansion_width is not None and beam_expansion_width < 1:
+            raise ValueError("beam_expansion_width must be >= 1, or None")
+        if beam_n_restarts < 1:
+            raise ValueError("beam_n_restarts must be >= 1")
+        if not (0.0 <= float(beam_random_fraction) <= 1.0):
+            raise ValueError("beam_random_fraction must be between 0 and 1")
+        if beam_max_label_pair_scan < 1:
+            raise ValueError("beam_max_label_pair_scan must be >= 1")
+        if beam_max_label_pairs_per_expansion is not None and beam_max_label_pairs_per_expansion < 1:
+            raise ValueError("beam_max_label_pairs_per_expansion must be >= 1, or None")
+        if beam_max_nodes_per_label_side < 1:
+            raise ValueError("beam_max_nodes_per_label_side must be >= 1")
+        if beam_expansion_fn is not None and candidate_fn is not None:
+            raise ValueError("Provide only one of beam_expansion_fn or candidate_fn")
+
         self.phi_name = phi_name
         self.method = method
         self.mode = mode
@@ -91,13 +129,32 @@ class TreePathMatcher:
         self.ts_field = ts_field
         self.strict_tree = strict_tree
         self.dtype = dtype
-        self.beam_width = beam_width
-        self.beam_symmetric = beam_symmetric
+
+        self.beam_width = int(beam_width)
+        self.beam_symmetric = bool(beam_symmetric)
+        self.beam_expansion_width = beam_expansion_width
+        self.beam_expansion_fn = beam_expansion_fn
+        self.beam_candidate_heuristic_fn = beam_candidate_heuristic_fn
+        self.beam_priority_fn = beam_priority_fn
+        self.beam_min_match_score = float(beam_min_match_score)
+        self.beam_random_fraction = float(beam_random_fraction)
+        self.beam_n_restarts = int(beam_n_restarts)
+        self.beam_max_length = beam_max_length
+        self.beam_max_label_pair_scan = int(beam_max_label_pair_scan)
+        self.beam_max_label_pairs_per_expansion = beam_max_label_pairs_per_expansion
+        self.beam_max_nodes_per_label_side = int(beam_max_nodes_per_label_side)
+        self.beam_rarity_weight = float(beam_rarity_weight)
+        self.beam_gap_penalty = float(beam_gap_penalty)
+        self.beam_balance_penalty = float(beam_balance_penalty)
+        self.beam_candidate_future_weight = float(beam_candidate_future_weight)
+        self.beam_priority_future_weight = float(beam_priority_future_weight)
+        self.beam_priority_length_weight = float(beam_priority_length_weight)
+
         self.candidate_fn = candidate_fn
         self.max_candidates_per_label = max_candidates_per_label
         self.max_candidates_per_u = max_candidates_per_u
         self.candidate_select_mode = candidate_select_mode
-        self.seed = seed
+        self.seed = int(seed)
         self.match_predicate = match_predicate
         self.prefer_match_on_tie = prefer_match_on_tie
         self.template_repeat_penalty = template_repeat_penalty
@@ -197,7 +254,11 @@ class TreePathMatcher:
             return newG
         raise ValueError(f"Unknown normalization mode: {mode!r}")
 
-    def predict(self, G: Optional[ExactBeamInput | SparseInput] = None, H: Optional[ExactBeamInput | SparseInput] = None) -> Tuple[List[Tuple[int, int]], float]:
+    def predict(
+        self,
+        G: Optional[ExactBeamInput | SparseInput] = None,
+        H: Optional[ExactBeamInput | SparseInput] = None,
+    ) -> Tuple[List[Tuple[int, int]], float]:
         if self.method == "sparse":
             assert_bucketable_weight(self.w, mode_name="sparse")
             if G is not None or H is not None:
@@ -257,34 +318,37 @@ class TreePathMatcher:
                     prefer_match_on_tie=self.prefer_match_on_tie,
                 )
         else:
-            if self.beam_symmetric:
-                res = align_trees_beam_symmetric(
-                    treeG,
-                    treeH,
-                    w=w_fn,
-                    beam_width=self.beam_width,
-                    candidate_fn=self.candidate_fn,
-                    max_candidates_per_label=self.max_candidates_per_label,
-                    max_candidates_per_u=self.max_candidates_per_u,
-                    candidate_select_mode=self.candidate_select_mode,
-                    seed=self.seed,
-                    match_predicate=self.match_predicate,
-                    prefer_match_on_tie=self.prefer_match_on_tie,
-                )
-            else:
-                res = align_trees_beam(
-                    treeG,
-                    treeH,
-                    w=w_fn,
-                    beam_width=self.beam_width,
-                    candidate_fn=self.candidate_fn,
-                    max_candidates_per_label=self.max_candidates_per_label,
-                    max_candidates_per_u=self.max_candidates_per_u,
-                    candidate_select_mode=self.candidate_select_mode,
-                    seed=self.seed,
-                    match_predicate=self.match_predicate,
-                    prefer_match_on_tie=self.prefer_match_on_tie,
-                )
+            beam_fn = align_trees_beam_symmetric if self.beam_symmetric else align_trees_beam
+            res = beam_fn(
+                treeG,
+                treeH,
+                w=w_fn,
+                beam_width=self.beam_width,
+                expansion_width=self.beam_expansion_width,
+                expansion_fn=self.beam_expansion_fn,
+                candidate_heuristic=self.beam_candidate_heuristic_fn,
+                priority_fn=self.beam_priority_fn,
+                n_restarts=self.beam_n_restarts,
+                min_match_score=self.beam_min_match_score,
+                max_label_pair_scan=self.beam_max_label_pair_scan,
+                max_label_pairs_per_expansion=self.beam_max_label_pairs_per_expansion,
+                max_nodes_per_label_side=self.beam_max_nodes_per_label_side,
+                random_fraction=self.beam_random_fraction,
+                rarity_weight=self.beam_rarity_weight,
+                gap_penalty=self.beam_gap_penalty,
+                balance_penalty=self.beam_balance_penalty,
+                candidate_future_weight=self.beam_candidate_future_weight,
+                priority_future_weight=self.beam_priority_future_weight,
+                priority_length_weight=self.beam_priority_length_weight,
+                candidate_fn=self.candidate_fn,
+                max_candidates_per_label=self.max_candidates_per_label,
+                max_candidates_per_u=self.max_candidates_per_u,
+                candidate_select_mode=self.candidate_select_mode,
+                seed=self.seed,
+                match_predicate=self.match_predicate,
+                prefer_match_on_tie=self.prefer_match_on_tie,
+                max_length=self.beam_max_length,
+            )
 
         path_orig = [(int(treeG.orig_index[u]), int(treeH.orig_index[v])) for (u, v) in res.path_internal]
         return path_orig, res.score
