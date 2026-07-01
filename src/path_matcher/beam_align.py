@@ -14,9 +14,10 @@ placeholder:
 - descendant queries use preorder intervals and label indexes rather than
   scanning full trees;
 - local candidate ranking combines match score, label-pair rarity, gap/balance
-  penalties, a small continuation estimate, and optional seeded exploration;
+  penalties, a small continuation estimate, optional subtree-sketch lookahead,
+  and optional seeded exploration;
 - frontier priority combines accumulated score with a conservative remaining
-  height bound.
+  height bound and, when enabled, a precomputed subtree-compatibility lookahead.
 
 Users can override the expansion rule, the candidate heuristic, and/or the beam
 priority.  The exact DP implementation remains in ``needleman_wunsch_tree.py``;
@@ -46,6 +47,10 @@ CandidateFn = Callable[[int, Any, TreeData], Sequence[int]]
 # Optional quick admissibility predicate on raw labels.
 MatchPredicate = Callable[[Any, Any], bool]
 
+# Optional callable exposed to custom expansion rules.  It returns the current
+# built-in lookahead estimate for a terminal pair, or 0.0 when lookahead is off.
+BeamLookaheadScoreFn = Callable[[int, int], float]
+
 
 @dataclass(frozen=True, slots=True)
 class BeamHeuristicStats:
@@ -58,6 +63,8 @@ class BeamHeuristicStats:
     max_match_score: float
     nG: int
     nH: int
+    lookahead_enabled: bool = False
+    lookahead_weight: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,6 +91,7 @@ class BeamCandidateContext:
     balance_gap: int
     rarity: float
     future_bound: float
+    lookahead_score: float
     default_priority: float
     stats: BeamHeuristicStats
     rng: np.random.Generator
@@ -106,6 +114,7 @@ class BeamStateContext:
     score: float
     length: int
     future_bound: float
+    lookahead_score: float
     default_priority: float
     stats: BeamHeuristicStats
     rng: np.random.Generator
@@ -130,6 +139,7 @@ class BeamExpansionContext:
     layer: int
     stats: BeamHeuristicStats
     rng: np.random.Generator
+    lookahead_score_fn: Optional[BeamLookaheadScoreFn] = None
 
 
 CandidateHeuristic = Callable[[BeamCandidateContext], float]
@@ -190,6 +200,36 @@ class _ScoredCandidate:
 
 
 @dataclass(frozen=True, slots=True)
+class _LookaheadSketches:
+    # ``below[node]`` summarizes labels in the strict descendants of ``node``.
+    # ``sentinel`` summarizes all real nodes and is used for the initial state.
+    below: Tuple[Tuple[Tuple[Any, float], ...], ...]
+    sentinel: Tuple[Tuple[Any, float], ...]
+    # ``below_chunks`` uses fixed-length downward label shingles.  It is a
+    # deliberately heuristic way to notice that larger path-like chunks may be
+    # available below a candidate pair.
+    below_chunks: Tuple[Tuple[Tuple[Tuple[Any, ...], float], ...], ...]
+    sentinel_chunks: Tuple[Tuple[Tuple[Any, ...], float], ...]
+    chunk_size: int
+
+
+@dataclass(slots=True)
+class _LookaheadIndex:
+    idxG: _TreeIndex
+    idxH: _TreeIndex
+    sketchesG: _LookaheadSketches
+    sketchesH: _LookaheadSketches
+    w_fn: WeightFn
+    w_is_id: bool
+    match_predicate: Optional[MatchPredicate]
+    min_match_score: float
+    max_match_score: float
+    label_weight: float
+    chunk_weight: float
+    cache: Dict[int, float]
+
+
+@dataclass(frozen=True, slots=True)
 class _BeamParams:
     beam_width: int
     expansion_width: Optional[int]
@@ -205,6 +245,13 @@ class _BeamParams:
     candidate_future_weight: float
     priority_future_weight: float
     priority_length_weight: float
+    lookahead_enabled: bool
+    lookahead_weight: float
+    lookahead_sketch_size: int
+    lookahead_depth_discount: float
+    lookahead_chunk_size: int
+    lookahead_label_weight: float
+    lookahead_chunk_weight: float
     max_descendant_nodes_for_legacy_candidate_fn: int
 
 
@@ -509,12 +556,14 @@ def _default_candidate_priority(
     depth_gap: int,
     balance_gap: int,
     future_bound: float,
+    lookahead_score: float,
     params: _BeamParams,
 ) -> float:
     return float(
         match_score
         + params.rarity_weight * rarity
         + params.candidate_future_weight * future_bound
+        + params.lookahead_weight * lookahead_score
         - params.gap_penalty * depth_gap
         - params.balance_penalty * balance_gap
     )
@@ -525,6 +574,341 @@ def _future_bound_for_pair(idxG: _TreeIndex, idxH: _TreeIndex, u: int, v: int, m
     # are bounded by height-1 on each side.
     remaining = min(max(0, int(idxG.height[u]) - 1), max(0, int(idxH.height[v]) - 1))
     return float(remaining) * float(max_match_score)
+
+
+def _top_k_mass(mass: Mapping[Any, float], k: int) -> Tuple[Tuple[Any, float], ...]:
+    """Return the largest positive mass entries in deterministic order."""
+
+    if k <= 0 or not mass:
+        return ()
+    items = [(key, float(value)) for key, value in mass.items() if float(value) > 0.0]
+    if not items:
+        return ()
+    items.sort(key=lambda item: (item[1], repr(item[0])), reverse=True)
+    return tuple((key, value) for key, value in items[:k])
+
+
+def _build_lookahead_sketches(
+    index: _TreeIndex,
+    *,
+    sketch_size: int,
+    depth_discount: float,
+    chunk_size: int,
+) -> _LookaheadSketches:
+    """Build capped discounted descendant-label and path-chunk sketches.
+
+    A strict child contributes label weight 1.0, a grandchild contributes
+    ``depth_discount``, and so on.  The chunk sketch stores capped fixed-length
+    downward label shingles.  This keeps precomputation close to
+    O(|T| * sketch_size * chunk_size) for ordinary bounded-degree trees.
+    """
+
+    n = len(index.preorder)
+    cap = int(sketch_size)
+    q = max(1, int(chunk_size))
+    discount = float(depth_discount)
+
+    below: List[Tuple[Tuple[Any, float], ...]] = [() for _ in range(n)]
+    below_chunks: List[Tuple[Tuple[Tuple[Any, ...], float], ...]] = [() for _ in range(n)]
+    # prefixes[u][length] stores capped label sequences of exactly ``length``
+    # starting at u.  Index 0 is unused.
+    prefixes: List[List[Tuple[Tuple[Tuple[Any, ...], float], ...]]] = [
+        [tuple() for _ in range(q + 1)] for _ in range(n)
+    ]
+
+    for u_raw in reversed(index.preorder):
+        u = int(u_raw)
+
+        label_mass: Dict[Any, float] = {}
+        for c in index.children[u]:
+            child_key = index.label_key[int(c)]
+            label_mass[child_key] = label_mass.get(child_key, 0.0) + 1.0
+            for key, value in below[int(c)]:
+                label_mass[key] = label_mass.get(key, 0.0) + discount * float(value)
+        below[u] = _top_k_mass(label_mass, cap)
+
+        prefixes[u][1] = (((index.label_key[u],), 1.0),)
+        for length in range(2, q + 1):
+            prefix_mass: Dict[Tuple[Any, ...], float] = {}
+            for c in index.children[u]:
+                for seq, value in prefixes[int(c)][length - 1]:
+                    prefix_mass[(index.label_key[u],) + tuple(seq)] = prefix_mass.get(
+                        (index.label_key[u],) + tuple(seq), 0.0
+                    ) + float(value)
+            prefixes[u][length] = _top_k_mass(prefix_mass, cap)  # type: ignore[assignment]
+
+        chunk_mass: Dict[Tuple[Any, ...], float] = {}
+        for c in index.children[u]:
+            c_int = int(c)
+            for seq, value in prefixes[c_int][q]:
+                chunk_mass[seq] = chunk_mass.get(seq, 0.0) + float(value)
+            for seq, value in below_chunks[c_int]:
+                chunk_mass[seq] = chunk_mass.get(seq, 0.0) + discount * float(value)
+        below_chunks[u] = _top_k_mass(chunk_mass, cap)  # type: ignore[assignment]
+
+    root_mass: Dict[Any, float] = {index.label_key[0]: 1.0}
+    for key, value in below[0]:
+        root_mass[key] = root_mass.get(key, 0.0) + discount * float(value)
+    sentinel = _top_k_mass(root_mass, cap)
+
+    root_chunk_mass: Dict[Tuple[Any, ...], float] = {}
+    for seq, value in prefixes[0][q]:
+        root_chunk_mass[seq] = root_chunk_mass.get(seq, 0.0) + float(value)
+    for seq, value in below_chunks[0]:
+        root_chunk_mass[seq] = root_chunk_mass.get(seq, 0.0) + discount * float(value)
+    sentinel_chunks = _top_k_mass(root_chunk_mass, cap)  # type: ignore[assignment]
+
+    return _LookaheadSketches(
+        below=tuple(below),
+        sentinel=sentinel,
+        below_chunks=tuple(below_chunks),
+        sentinel_chunks=sentinel_chunks,
+        chunk_size=q,
+    )
+
+
+def _build_lookahead_index(
+    idxG: _TreeIndex,
+    idxH: _TreeIndex,
+    *,
+    w_fn: WeightFn,
+    w_is_id: bool,
+    match_predicate: Optional[MatchPredicate],
+    min_match_score: float,
+    max_match_score: float,
+    sketch_size: int,
+    depth_discount: float,
+    chunk_size: int,
+    label_weight: float,
+    chunk_weight: float,
+) -> _LookaheadIndex:
+    return _LookaheadIndex(
+        idxG=idxG,
+        idxH=idxH,
+        sketchesG=_build_lookahead_sketches(
+            idxG,
+            sketch_size=int(sketch_size),
+            depth_discount=float(depth_discount),
+            chunk_size=int(chunk_size),
+        ),
+        sketchesH=_build_lookahead_sketches(
+            idxH,
+            sketch_size=int(sketch_size),
+            depth_discount=float(depth_discount),
+            chunk_size=int(chunk_size),
+        ),
+        w_fn=w_fn,
+        w_is_id=bool(w_is_id),
+        match_predicate=match_predicate,
+        min_match_score=float(min_match_score),
+        max_match_score=float(max_match_score),
+        label_weight=float(label_weight),
+        chunk_weight=float(chunk_weight),
+        cache={},
+    )
+
+
+def _lookahead_pair_key(lookahead: _LookaheadIndex, u: int, v: int) -> int:
+    # Shift by +1 so that the sentinel terminal -1 can be cached.
+    return (int(u) + 1) * (len(lookahead.idxH.preorder) + 1) + (int(v) + 1)
+
+
+def _sketch_for_terminal(sketches: _LookaheadSketches, terminal: int) -> Tuple[Tuple[Any, float], ...]:
+    if terminal < 0:
+        return sketches.sentinel
+    return sketches.below[int(terminal)]
+
+
+def _chunk_sketch_for_terminal(
+    sketches: _LookaheadSketches,
+    terminal: int,
+) -> Tuple[Tuple[Tuple[Any, ...], float], ...]:
+    if terminal < 0:
+        return sketches.sentinel_chunks
+    return sketches.below_chunks[int(terminal)]
+
+
+def _lookahead_height_cap(lookahead: _LookaheadIndex, u: int, v: int) -> float:
+    if u < 0 or v < 0:
+        remaining = min(int(lookahead.idxG.max_height), int(lookahead.idxH.max_height))
+        return float(remaining) * float(lookahead.max_match_score)
+    return _future_bound_for_pair(lookahead.idxG, lookahead.idxH, int(u), int(v), lookahead.max_match_score)
+
+
+def _lookahead_label_overlap(
+    lookahead: _LookaheadIndex,
+    sketch_g: Tuple[Tuple[Any, float], ...],
+    sketch_h: Tuple[Tuple[Any, float], ...],
+) -> float:
+    """Score capped descendant-label overlap between two terminals."""
+
+    if not sketch_g or not sketch_h:
+        return 0.0
+
+    if lookahead.w_is_id and lookahead.match_predicate is None:
+        raw = 0.0
+        mass_h = {key: float(value) for key, value in sketch_h}
+        for key_g, mass_g in sketch_g:
+            mass = min(float(mass_g), mass_h.get(key_g, 0.0))
+            if mass <= 0.0:
+                continue
+            label_g = lookahead.idxG.label_by_key[key_g]
+            label_h = lookahead.idxH.label_by_key[key_g]
+            score = _score_label_pair(
+                label_g,
+                label_h,
+                w_fn=lookahead.w_fn,
+                w_is_id=lookahead.w_is_id,
+                match_predicate=lookahead.match_predicate,
+            )
+            if math.isfinite(score) and score > lookahead.min_match_score:
+                raw += mass * float(score)
+        return raw
+
+    pair_scores: List[Tuple[float, str, str, Any, Any]] = []
+    for key_g, _mass_g in sketch_g:
+        label_g = lookahead.idxG.label_by_key[key_g]
+        for key_h, _mass_h in sketch_h:
+            label_h = lookahead.idxH.label_by_key[key_h]
+            score = _score_label_pair(
+                label_g,
+                label_h,
+                w_fn=lookahead.w_fn,
+                w_is_id=lookahead.w_is_id,
+                match_predicate=lookahead.match_predicate,
+            )
+            if math.isfinite(score) and score > lookahead.min_match_score:
+                pair_scores.append((float(score), repr(key_g), repr(key_h), key_g, key_h))
+
+    if not pair_scores:
+        return 0.0
+
+    raw = 0.0
+    pair_scores.sort(reverse=True)
+    rem_g: Dict[Any, float] = {key: float(value) for key, value in sketch_g}
+    rem_h: Dict[Any, float] = {key: float(value) for key, value in sketch_h}
+    for score, _repr_g, _repr_h, key_g, key_h in pair_scores:
+        mass = min(rem_g.get(key_g, 0.0), rem_h.get(key_h, 0.0))
+        if mass <= 0.0:
+            continue
+        raw += mass * float(score)
+        rem_g[key_g] = rem_g.get(key_g, 0.0) - mass
+        rem_h[key_h] = rem_h.get(key_h, 0.0) - mass
+    return raw
+
+
+def _chunk_pair_score(
+    lookahead: _LookaheadIndex,
+    seq_g: Tuple[Any, ...],
+    seq_h: Tuple[Any, ...],
+) -> float:
+    """Return the path-chunk compatibility score for two equal-length shingles."""
+
+    if len(seq_g) != len(seq_h):
+        return 0.0
+    if lookahead.w_is_id and lookahead.match_predicate is None:
+        return float(len(seq_g)) * float(lookahead.max_match_score) if seq_g == seq_h else 0.0
+
+    total = 0.0
+    for key_g, key_h in zip(seq_g, seq_h):
+        label_g = lookahead.idxG.label_by_key[key_g]
+        label_h = lookahead.idxH.label_by_key[key_h]
+        score = _score_label_pair(
+            label_g,
+            label_h,
+            w_fn=lookahead.w_fn,
+            w_is_id=lookahead.w_is_id,
+            match_predicate=lookahead.match_predicate,
+        )
+        if not math.isfinite(score) or score <= lookahead.min_match_score:
+            return 0.0
+        total += float(score)
+    return total
+
+
+def _lookahead_chunk_overlap(
+    lookahead: _LookaheadIndex,
+    chunks_g: Tuple[Tuple[Tuple[Any, ...], float], ...],
+    chunks_h: Tuple[Tuple[Tuple[Any, ...], float], ...],
+) -> float:
+    """Score capped overlap between fixed-length descendant path shingles."""
+
+    if not chunks_g or not chunks_h:
+        return 0.0
+
+    if lookahead.w_is_id and lookahead.match_predicate is None:
+        raw = 0.0
+        mass_h = {seq: float(value) for seq, value in chunks_h}
+        for seq_g, mass_g in chunks_g:
+            mass = min(float(mass_g), mass_h.get(seq_g, 0.0))
+            if mass <= 0.0:
+                continue
+            raw += mass * float(len(seq_g)) * float(lookahead.max_match_score)
+        return raw
+
+    pair_scores: List[Tuple[float, str, str, Tuple[Any, ...], Tuple[Any, ...]]] = []
+    for seq_g, _mass_g in chunks_g:
+        for seq_h, _mass_h in chunks_h:
+            score = _chunk_pair_score(lookahead, tuple(seq_g), tuple(seq_h))
+            if score > 0.0:
+                pair_scores.append((float(score), repr(seq_g), repr(seq_h), tuple(seq_g), tuple(seq_h)))
+
+    if not pair_scores:
+        return 0.0
+
+    raw = 0.0
+    pair_scores.sort(reverse=True)
+    rem_g: Dict[Tuple[Any, ...], float] = {tuple(seq): float(value) for seq, value in chunks_g}
+    rem_h: Dict[Tuple[Any, ...], float] = {tuple(seq): float(value) for seq, value in chunks_h}
+    for score, _repr_g, _repr_h, seq_g, seq_h in pair_scores:
+        mass = min(rem_g.get(seq_g, 0.0), rem_h.get(seq_h, 0.0))
+        if mass <= 0.0:
+            continue
+        raw += mass * float(score)
+        rem_g[seq_g] = rem_g.get(seq_g, 0.0) - mass
+        rem_h[seq_h] = rem_h.get(seq_h, 0.0) - mass
+    return raw
+
+
+def _lookahead_score(lookahead: Optional[_LookaheadIndex], u: int, v: int) -> float:
+    """Estimate future match potential below terminal pair ``(u, v)``.
+
+    This is intentionally non-admissible: it is a ranking feature, not a proof
+    bound.  It combines two capped sketches: descendant-label mass and
+    fixed-length downward path shingles.  The shingle component is the
+    lightweight "look farther ahead" part; it can notice that a candidate opens
+    access to a coherent future path chunk rather than only to isolated labels.
+    """
+
+    if lookahead is None or lookahead.max_match_score <= 0.0:
+        return 0.0
+
+    cache_key = _lookahead_pair_key(lookahead, u, v)
+    cached = lookahead.cache.get(cache_key)
+    if cached is not None:
+        return float(cached)
+
+    cap = _lookahead_height_cap(lookahead, int(u), int(v))
+    if cap <= 0.0:
+        lookahead.cache[cache_key] = 0.0
+        return 0.0
+
+    raw_label = 0.0
+    if lookahead.label_weight > 0.0:
+        sketch_g = _sketch_for_terminal(lookahead.sketchesG, int(u))
+        sketch_h = _sketch_for_terminal(lookahead.sketchesH, int(v))
+        raw_label = _lookahead_label_overlap(lookahead, sketch_g, sketch_h)
+
+    raw_chunk = 0.0
+    if lookahead.chunk_weight > 0.0 and lookahead.sketchesG.chunk_size > 0 and lookahead.sketchesH.chunk_size > 0:
+        chunks_g = _chunk_sketch_for_terminal(lookahead.sketchesG, int(u))
+        chunks_h = _chunk_sketch_for_terminal(lookahead.sketchesH, int(v))
+        raw_chunk = _lookahead_chunk_overlap(lookahead, chunks_g, chunks_h)
+
+    raw = float(lookahead.label_weight) * float(raw_label) + float(lookahead.chunk_weight) * float(raw_chunk)
+    out = max(0.0, min(raw, float(cap)))
+    lookahead.cache[cache_key] = out
+    return out
 
 
 def _push_candidate(
@@ -563,6 +947,7 @@ def _candidate_from_pair(
     match_score: float,
     rarity: float,
     candidate_heuristic: Optional[CandidateHeuristic],
+    lookahead: Optional[_LookaheadIndex],
     rng: np.random.Generator,
 ) -> Optional[_ScoredCandidate]:
     if not math.isfinite(match_score) or match_score <= params.min_match_score:
@@ -585,12 +970,14 @@ def _candidate_from_pair(
     depth_gap = int(gap_g + gap_h)
     balance_gap = int(abs(step_g - step_h))
     future_bound = _future_bound_for_pair(idxG, idxH, u, v, stats.max_match_score)
+    lookahead_score = _lookahead_score(lookahead, u, v)
     default_priority = _default_candidate_priority(
         match_score=match_score,
         rarity=rarity,
         depth_gap=depth_gap,
         balance_gap=balance_gap,
         future_bound=future_bound,
+        lookahead_score=lookahead_score,
         params=params,
     )
 
@@ -611,6 +998,7 @@ def _candidate_from_pair(
             balance_gap=balance_gap,
             rarity=float(rarity),
             future_bound=float(future_bound),
+            lookahead_score=float(lookahead_score),
             default_priority=float(default_priority),
             stats=stats,
             rng=rng,
@@ -641,6 +1029,7 @@ def _generate_default_expansion(
     w_is_id: bool,
     match_predicate: Optional[MatchPredicate],
     candidate_heuristic: Optional[CandidateHeuristic],
+    lookahead: Optional[_LookaheadIndex],
     rng: np.random.Generator,
 ) -> List[_ScoredCandidate]:
     heap: List[Tuple[float, int, _ScoredCandidate]] = []
@@ -713,6 +1102,7 @@ def _generate_default_expansion(
                     match_score=match_score,
                     rarity=label_pair.rarity,
                     candidate_heuristic=candidate_heuristic,
+                    lookahead=lookahead,
                     rng=rng,
                 )
                 if cand is not None:
@@ -741,6 +1131,7 @@ def _generate_legacy_candidate_fn_expansion(
     match_predicate: Optional[MatchPredicate],
     candidate_fn: CandidateFn,
     candidate_heuristic: Optional[CandidateHeuristic],
+    lookahead: Optional[_LookaheadIndex],
     rng: np.random.Generator,
 ) -> List[_ScoredCandidate]:
     descendants_g = _all_descendants(idxG, last_u)
@@ -794,6 +1185,7 @@ def _generate_legacy_candidate_fn_expansion(
                 match_score=match_score,
                 rarity=0.0,
                 candidate_heuristic=candidate_heuristic,
+                lookahead=lookahead,
                 rng=rng,
             )
             if cand is not None:
@@ -823,6 +1215,7 @@ def _generate_custom_expansion(
     match_predicate: Optional[MatchPredicate],
     expansion_fn: ExpansionFn,
     candidate_heuristic: Optional[CandidateHeuristic],
+    lookahead: Optional[_LookaheadIndex],
     rng: np.random.Generator,
 ) -> List[_ScoredCandidate]:
     ctx = BeamExpansionContext(
@@ -835,6 +1228,7 @@ def _generate_custom_expansion(
         layer=int(layer),
         stats=stats,
         rng=rng,
+        lookahead_score_fn=(lambda u, v: _lookahead_score(lookahead, int(u), int(v))) if lookahead is not None else None,
     )
     raw_candidates = expansion_fn(ctx)
 
@@ -893,6 +1287,7 @@ def _generate_custom_expansion(
             match_score=match_score,
             rarity=0.0,
             candidate_heuristic=candidate_heuristic,
+            lookahead=lookahead,
             rng=rng,
         )
         if cand is not None:
@@ -917,13 +1312,20 @@ def _state_priority(
     score: float,
     length: int,
     priority_fn: Optional[PriorityFn],
+    lookahead: Optional[_LookaheadIndex],
     rng: np.random.Generator,
 ) -> float:
     if last_u < 0 or last_v < 0:
         future_bound = float(min(idxG.max_height, idxH.max_height)) * float(stats.max_match_score)
     else:
         future_bound = _future_bound_for_pair(idxG, idxH, last_u, last_v, stats.max_match_score)
-    default_priority = float(score + params.priority_future_weight * future_bound + params.priority_length_weight * length)
+    lookahead_score = _lookahead_score(lookahead, last_u, last_v)
+    default_priority = float(
+        score
+        + params.priority_future_weight * future_bound
+        + params.lookahead_weight * lookahead_score
+        + params.priority_length_weight * length
+    )
     if priority_fn is None:
         return default_priority
     ctx = BeamStateContext(
@@ -934,6 +1336,7 @@ def _state_priority(
         score=float(score),
         length=int(length),
         future_bound=float(future_bound),
+        lookahead_score=float(lookahead_score),
         default_priority=float(default_priority),
         stats=stats,
         rng=rng,
@@ -1001,7 +1404,25 @@ def _align_trees_beam_once(
         max_match_score=float(max_match_score),
         nG=G.n,
         nH=H.n,
+        lookahead_enabled=bool(params.lookahead_enabled),
+        lookahead_weight=float(params.lookahead_weight),
     )
+    lookahead: Optional[_LookaheadIndex] = None
+    if params.lookahead_enabled and max_match_score > 0.0:
+        lookahead = _build_lookahead_index(
+            idxG,
+            idxH,
+            w_fn=w_fn,
+            w_is_id=w_is_id,
+            match_predicate=match_predicate,
+            min_match_score=params.min_match_score,
+            max_match_score=float(max_match_score),
+            sketch_size=params.lookahead_sketch_size,
+            depth_discount=params.lookahead_depth_discount,
+            chunk_size=params.lookahead_chunk_size,
+            label_weight=params.lookahead_label_weight,
+            chunk_weight=params.lookahead_chunk_weight,
+        )
 
     if max_length is None:
         lmax = int(min(idxG.max_height, idxH.max_height))
@@ -1048,6 +1469,7 @@ def _align_trees_beam_once(
                     match_predicate=match_predicate,
                     expansion_fn=expansion_fn,
                     candidate_heuristic=candidate_heuristic,
+                    lookahead=lookahead,
                     rng=rng,
                 )
             elif candidate_fn is not None:
@@ -1067,6 +1489,7 @@ def _align_trees_beam_once(
                     match_predicate=match_predicate,
                     candidate_fn=candidate_fn,
                     candidate_heuristic=candidate_heuristic,
+                    lookahead=lookahead,
                     rng=rng,
                 )
             else:
@@ -1086,6 +1509,7 @@ def _align_trees_beam_once(
                     w_is_id=w_is_id,
                     match_predicate=match_predicate,
                     candidate_heuristic=candidate_heuristic,
+                    lookahead=lookahead,
                     rng=rng,
                 )
 
@@ -1130,6 +1554,7 @@ def _align_trees_beam_once(
                 score=scores[sid],
                 length=lengths[sid],
                 priority_fn=priority_fn,
+                lookahead=lookahead,
                 rng=rng,
             )
             if math.isfinite(pri):
@@ -1169,6 +1594,18 @@ def _validate_beam_params(params: _BeamParams) -> None:
         raise ValueError("random_fraction must be in [0, 1]")
     if params.min_match_score < -math.inf:
         raise ValueError("min_match_score is invalid")
+    if params.lookahead_weight < 0.0:
+        raise ValueError("lookahead_weight must be nonnegative")
+    if params.lookahead_sketch_size < 1:
+        raise ValueError("lookahead_sketch_size must be >= 1")
+    if not (0.0 <= params.lookahead_depth_discount <= 1.0):
+        raise ValueError("lookahead_depth_discount must be in [0, 1]")
+    if params.lookahead_chunk_size < 1:
+        raise ValueError("lookahead_chunk_size must be >= 1")
+    if params.lookahead_label_weight < 0.0:
+        raise ValueError("lookahead_label_weight must be nonnegative")
+    if params.lookahead_chunk_weight < 0.0:
+        raise ValueError("lookahead_chunk_weight must be nonnegative")
     if params.max_descendant_nodes_for_legacy_candidate_fn < 1:
         raise ValueError("max_descendant_nodes_for_legacy_candidate_fn must be >= 1")
 
@@ -1202,6 +1639,13 @@ def align_trees_beam(
     candidate_future_weight: float = 0.03,
     priority_future_weight: float = 0.20,
     priority_length_weight: float = 0.0,
+    lookahead: bool = False,
+    lookahead_weight: float = 0.35,
+    lookahead_sketch_size: int = 32,
+    lookahead_depth_discount: float = 0.85,
+    lookahead_chunk_size: int = 3,
+    lookahead_label_weight: float = 1.0,
+    lookahead_chunk_weight: float = 0.5,
     max_length: Optional[int] = None,
 ) -> AlignmentResult:
     """
@@ -1235,6 +1679,19 @@ def align_trees_beam(
         ``expansion_fn`` for new code.
     n_restarts:
         Number of seeded stochastic restarts.  The best returned score is kept.
+    lookahead:
+        If True, precompute discounted subtree label sketches and add their
+        estimated future compatibility to the default candidate and frontier
+        priorities.  This is deliberately heuristic, not an admissible A* bound.
+    lookahead_weight:
+        Weight of the precomputed lookahead score in the built-in priorities.
+    lookahead_chunk_size:
+        Length of fixed downward label shingles used by the path-chunk part of
+        the lookahead sketch.
+    lookahead_label_weight, lookahead_chunk_weight:
+        Relative weights of the discounted descendant-label overlap and exact
+        fixed-length path-shingle overlap before the result is capped by the
+        remaining path-height estimate.
     prefer_match_on_tie:
         Accepted for API compatibility with the exact matcher; this search does
         not form DP cells, so there is no DP tie-break to apply.
@@ -1266,6 +1723,13 @@ def align_trees_beam(
         candidate_future_weight=float(candidate_future_weight),
         priority_future_weight=float(priority_future_weight),
         priority_length_weight=float(priority_length_weight),
+        lookahead_enabled=bool(lookahead),
+        lookahead_weight=float(lookahead_weight) if bool(lookahead) else 0.0,
+        lookahead_sketch_size=int(lookahead_sketch_size),
+        lookahead_depth_discount=float(lookahead_depth_discount),
+        lookahead_chunk_size=int(lookahead_chunk_size),
+        lookahead_label_weight=float(lookahead_label_weight),
+        lookahead_chunk_weight=float(lookahead_chunk_weight),
         max_descendant_nodes_for_legacy_candidate_fn=int(legacy_g_cap),
     )
     _validate_beam_params(params)
@@ -1324,6 +1788,13 @@ def align_trees_beam_symmetric(
     candidate_future_weight: float = 0.03,
     priority_future_weight: float = 0.20,
     priority_length_weight: float = 0.0,
+    lookahead: bool = False,
+    lookahead_weight: float = 0.35,
+    lookahead_sketch_size: int = 32,
+    lookahead_depth_discount: float = 0.85,
+    lookahead_chunk_size: int = 3,
+    lookahead_label_weight: float = 1.0,
+    lookahead_chunk_weight: float = 0.5,
     max_length: Optional[int] = None,
 ) -> AlignmentResult:
     """
@@ -1360,6 +1831,13 @@ def align_trees_beam_symmetric(
         candidate_future_weight=candidate_future_weight,
         priority_future_weight=priority_future_weight,
         priority_length_weight=priority_length_weight,
+        lookahead=lookahead,
+        lookahead_weight=lookahead_weight,
+        lookahead_sketch_size=lookahead_sketch_size,
+        lookahead_depth_discount=lookahead_depth_discount,
+        lookahead_chunk_size=lookahead_chunk_size,
+        lookahead_label_weight=lookahead_label_weight,
+        lookahead_chunk_weight=lookahead_chunk_weight,
         max_length=max_length,
     )
     res_fwd = align_trees_beam(G, H, **kwargs)

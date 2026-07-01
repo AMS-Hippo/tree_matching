@@ -64,6 +64,7 @@ class TreePathMatcher:
         beam_expansion_width: Optional[int] = 64,
         beam_expansion_fn: Optional[BeamExpansionFn] = None,
         beam_candidate_heuristic_fn: Optional[BeamCandidateHeuristicFn] = None,
+        beam_candidate_heuristic: Optional[BeamCandidateHeuristicFn] = None,
         beam_priority_fn: Optional[BeamPriorityFn] = None,
         beam_min_match_score: float = 0.0,
         beam_random_fraction: float = 0.10,
@@ -78,6 +79,13 @@ class TreePathMatcher:
         beam_candidate_future_weight: float = 0.03,
         beam_priority_future_weight: float = 0.20,
         beam_priority_length_weight: float = 0.0,
+        beam_lookahead: bool = False,
+        beam_lookahead_weight: float = 0.35,
+        beam_lookahead_sketch_size: int = 32,
+        beam_lookahead_depth_discount: float = 0.85,
+        beam_lookahead_chunk_size: int = 3,
+        beam_lookahead_label_weight: float = 1.0,
+        beam_lookahead_chunk_weight: float = 0.5,
         candidate_fn: Optional[CandidateFn] = None,
         max_candidates_per_label: Optional[int] = None,
         max_candidates_per_u: Optional[int] = None,
@@ -119,8 +127,22 @@ class TreePathMatcher:
             raise ValueError("beam_max_label_pairs_per_expansion must be >= 1, or None")
         if beam_max_nodes_per_label_side < 1:
             raise ValueError("beam_max_nodes_per_label_side must be >= 1")
+        if beam_lookahead_weight < 0.0:
+            raise ValueError("beam_lookahead_weight must be nonnegative")
+        if beam_lookahead_sketch_size < 1:
+            raise ValueError("beam_lookahead_sketch_size must be >= 1")
+        if not (0.0 <= float(beam_lookahead_depth_discount) <= 1.0):
+            raise ValueError("beam_lookahead_depth_discount must be between 0 and 1")
+        if beam_lookahead_chunk_size < 1:
+            raise ValueError("beam_lookahead_chunk_size must be >= 1")
+        if beam_lookahead_label_weight < 0.0:
+            raise ValueError("beam_lookahead_label_weight must be nonnegative")
+        if beam_lookahead_chunk_weight < 0.0:
+            raise ValueError("beam_lookahead_chunk_weight must be nonnegative")
         if beam_expansion_fn is not None and candidate_fn is not None:
             raise ValueError("Provide only one of beam_expansion_fn or candidate_fn")
+        if beam_candidate_heuristic_fn is not None and beam_candidate_heuristic is not None:
+            raise ValueError("Provide only one of beam_candidate_heuristic_fn or beam_candidate_heuristic")
 
         self.phi_name = phi_name
         self.method = method
@@ -134,7 +156,7 @@ class TreePathMatcher:
         self.beam_symmetric = bool(beam_symmetric)
         self.beam_expansion_width = beam_expansion_width
         self.beam_expansion_fn = beam_expansion_fn
-        self.beam_candidate_heuristic_fn = beam_candidate_heuristic_fn
+        self.beam_candidate_heuristic_fn = beam_candidate_heuristic_fn if beam_candidate_heuristic_fn is not None else beam_candidate_heuristic
         self.beam_priority_fn = beam_priority_fn
         self.beam_min_match_score = float(beam_min_match_score)
         self.beam_random_fraction = float(beam_random_fraction)
@@ -149,6 +171,13 @@ class TreePathMatcher:
         self.beam_candidate_future_weight = float(beam_candidate_future_weight)
         self.beam_priority_future_weight = float(beam_priority_future_weight)
         self.beam_priority_length_weight = float(beam_priority_length_weight)
+        self.beam_lookahead = bool(beam_lookahead)
+        self.beam_lookahead_weight = float(beam_lookahead_weight)
+        self.beam_lookahead_sketch_size = int(beam_lookahead_sketch_size)
+        self.beam_lookahead_depth_discount = float(beam_lookahead_depth_discount)
+        self.beam_lookahead_chunk_size = int(beam_lookahead_chunk_size)
+        self.beam_lookahead_label_weight = float(beam_lookahead_label_weight)
+        self.beam_lookahead_chunk_weight = float(beam_lookahead_chunk_weight)
 
         self.candidate_fn = candidate_fn
         self.max_candidates_per_label = max_candidates_per_label
@@ -340,6 +369,13 @@ class TreePathMatcher:
                 candidate_future_weight=self.beam_candidate_future_weight,
                 priority_future_weight=self.beam_priority_future_weight,
                 priority_length_weight=self.beam_priority_length_weight,
+                lookahead=self.beam_lookahead,
+                lookahead_weight=self.beam_lookahead_weight,
+                lookahead_sketch_size=self.beam_lookahead_sketch_size,
+                lookahead_depth_discount=self.beam_lookahead_depth_discount,
+                lookahead_chunk_size=self.beam_lookahead_chunk_size,
+                lookahead_label_weight=self.beam_lookahead_label_weight,
+                lookahead_chunk_weight=self.beam_lookahead_chunk_weight,
                 candidate_fn=self.candidate_fn,
                 max_candidates_per_label=self.max_candidates_per_label,
                 max_candidates_per_u=self.max_candidates_per_u,
