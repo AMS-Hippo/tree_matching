@@ -158,7 +158,10 @@ def align_trees_algorithm1(
     while U != 0 and V != 0:
         choice = int(C[U, V])
         if choice == 3:
-            path_rev.append((U - 1, V - 1))
+            u = U - 1
+            v = V - 1
+            if float(w_fn(labelsG[u], labelsH[v])) > 0.0:
+                path_rev.append((u, v))
 
         if choice == 1:
             U = int(ancG[U - 1])
