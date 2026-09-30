@@ -1,0 +1,9 @@
+regime,instances,oracle_valid_instances,exact_disagreement_instances,no_exact_result_instances,evaluation_mode
+deep_rare_anchor_stress,3,0,0,3,scalability only for unscored instances
+dense_common_overlap,5,5,0,0,accuracy and timing
+generic_sparse_jaccard,5,5,0,0,accuracy and timing
+large_sparse_overlap,4,4,0,0,accuracy and timing
+narrow_tree_to_path,5,5,0,0,accuracy and timing
+rare_anchor_oracle,5,5,0,0,accuracy and timing
+tiny_generic_dense,6,6,0,0,accuracy and timing
+wide_shallow_tree_pair,5,5,0,0,accuracy and timing

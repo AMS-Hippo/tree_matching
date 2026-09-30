@@ -1,0 +1,4 @@
+regime,expected_algorithm,oracle_status,observed_fastest_quality_eligible,observed_best_harmonic_score,quality_floor_percent
+equality_tree_to_path_common_labels,fast_dense,exact_agreement,fast_dense,fast_dense,99.0
+sparse_overlap_tree_template_bank,fast_sparse,exact_agreement,fast_beam_partial,fast_beam_partial,99.0
+generic_jaccard_tree_to_path,sparse_chain,exact_agreement,sparse_chain,sparse_chain,99.0

@@ -19,7 +19,8 @@
     "fast_sparse",
     "beam_local",
     "beam_local_capped",
-    "beam_partial_score"
+    "beam_partial_score",
+    "fast_beam_partial"
   ],
   "regimes": [
     {

@@ -18,7 +18,10 @@ import traceback
 import numpy as np
 import pandas as pd
 
+from .implementation_comparison import write_implementation_comparisons
+
 from path_matcher import (
+    FastBeamTreePathMatcher,
     FastSparseTreePathMatcher,
     FastTreePathMatcher,
     SparseCandidateConfig,
@@ -104,6 +107,23 @@ def default_algorithm_specs() -> Dict[str, AlgorithmSpec]:
             exact=True,
             compatible_score_modes=("equality", "overlap"),
             description="Specialized equality/overlap sparse-chain matcher.",
+        ),
+        "fast_beam_partial": AlgorithmSpec(
+            name="fast_beam_partial",
+            family="fast_beam",
+            kwargs={
+                "search": "partial",
+                "beam_width": 200,
+                "expansion_width": 64,
+                "max_nodes_per_token_side": 8,
+                "max_token_types_per_expansion": 2048,
+            },
+            exact=False,
+            compatible_score_modes=("equality", "overlap"),
+            description=(
+                "Encoded deterministic score-only partial-matching beam with "
+                "reusable token-posting indices."
+            ),
         ),
         "beam_local": AlgorithmSpec(
             name="beam_local",
@@ -251,6 +271,17 @@ def _matcher_for(
         if mode is None:
             raise ValueError(f"{spec.name} is incompatible with score mode {score_model.mode!r}")
         return FastSparseTreePathMatcher(
+            mode=mode,
+            token_weights=score_model.token_weights,
+            default_weight=score_model.default_weight,
+            collect_diagnostics=collect_diagnostics,
+            **kwargs,
+        )
+    if spec.family == "fast_beam":
+        mode = score_model.fast_mode
+        if mode is None:
+            raise ValueError(f"{spec.name} is incompatible with score mode {score_model.mode!r}")
+        return FastBeamTreePathMatcher(
             mode=mode,
             token_weights=score_model.token_weights,
             default_weight=score_model.default_weight,
@@ -1272,6 +1303,10 @@ def run_benchmark_config(
         (out / "benchmark_metadata.json").write_text(
             json.dumps(metadata, indent=2, sort_keys=True, default=str),
             encoding="utf-8",
+        )
+        write_implementation_comparisons(
+            row_frame, out, abs_tol=float(cfg.get("exact_score_abs_tol", 1e-5)),
+            rel_tol=float(cfg.get("exact_score_rel_tol", 1e-6)),
         )
     return row_frame, summary_frame, metadata
 

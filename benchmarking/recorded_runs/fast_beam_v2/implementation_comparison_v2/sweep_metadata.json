@@ -1,0 +1,1995 @@
+{
+  "base_config": "/home/asmi28/python_code/tree_matching/experiments/path_match_benchmark_full.json",
+  "execution_overrides": {
+    "execution_mode": "isolated",
+    "max_dense_cells": 30000000,
+    "max_sparse_posting_hits": 50000000,
+    "repeats": 3,
+    "thread_count": 1,
+    "timeout_seconds": 1200,
+    "warmup": 1
+  },
+  "runs": [
+    {
+      "metadata": {
+        "algorithm_order_seed": 20260928,
+        "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+        "algorithms": [
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Generic O(nm) exact dynamic program.",
+            "exact": true,
+            "family": "generic",
+            "kwargs": {
+              "method": "exact"
+            },
+            "name": "exact_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Specialized integerized/Numba exact matcher.",
+            "exact": true,
+            "family": "fast_dense",
+            "kwargs": {},
+            "name": "fast_dense"
+          }
+        ],
+        "config": {
+          "algorithm_order_seed": 20260928,
+          "algorithms": [
+            "exact_dense",
+            "fast_dense"
+          ],
+          "exact_score_abs_tol": 1e-05,
+          "exact_score_rel_tol": 1e-06,
+          "execution_mode": "isolated",
+          "max_dense_cells": 30000000,
+          "max_sparse_posting_hits": 50000000,
+          "quality_floor": 0.99,
+          "regimes": [
+            {
+              "alphabet_size": 8,
+              "comparison": "tree_tree",
+              "expected_algorithm": "fast_dense",
+              "n_g": 300,
+              "n_h": 300,
+              "n_instances": 3,
+              "name": "dense_overlap_size__n300",
+              "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+              "planted_length": 12,
+              "score_mode": "overlap",
+              "seed": 1102,
+              "shape_g": "medium",
+              "shape_h": "medium",
+              "symbol_distribution": "uniform",
+              "symbols_per_node": {
+                "kind": "categorical",
+                "probs": [
+                  0.5,
+                  0.35,
+                  0.15
+                ],
+                "values": [
+                  3,
+                  4,
+                  5
+                ]
+              },
+              "weight_mode": "uniform"
+            }
+          ],
+          "repeats": 3,
+          "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n300",
+          "thread_count": 1,
+          "timeout_seconds": 1200,
+          "warmup": 1
+        },
+        "config_hash": "pathmatch_41dd0ad24318",
+        "environment": {
+          "cpu_count": 24,
+          "machine": "x86_64",
+          "numba_version": "0.67.0",
+          "numpy_version": "2.5.3",
+          "pandas_version": "3.0.6",
+          "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+          "processor": "x86_64",
+          "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+          "thread_environment": {
+            "MKL_NUM_THREADS": null,
+            "NUMBA_NUM_THREADS": null,
+            "OMP_NUM_THREADS": null,
+            "OPENBLAS_NUM_THREADS": null
+          }
+        },
+        "exact_score_abs_tol": 1e-05,
+        "exact_score_rel_tol": 1e-06,
+        "execution_mode": "isolated",
+        "generation_seconds": 0.043108600977575406,
+        "max_dense_cells": 30000000,
+        "max_sparse_posting_hits": 50000000,
+        "quality_floor": 0.99,
+        "regimes": [
+          {
+            "alphabet_size": 8,
+            "comparison": "tree_tree",
+            "depth_g": null,
+            "depth_h": null,
+            "expected_algorithm": "fast_dense",
+            "max_token_weight": 8.0,
+            "n_g": 300,
+            "n_h": 300,
+            "n_instances": 3,
+            "name": "dense_overlap_size__n300",
+            "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+            "p_obs_g": 0.9,
+            "p_obs_h": 0.9,
+            "planted_distinct_tokens": null,
+            "planted_length": 12,
+            "planted_path_selection": "random_leaf",
+            "planted_position_mode": "even",
+            "planted_tail_fraction": 0.2,
+            "planted_token_policy": "background",
+            "reserved_token_weight": 4.0,
+            "score_mode": "overlap",
+            "seed": 1102,
+            "shape_g": "medium",
+            "shape_h": "medium",
+            "symbol_distribution": "uniform",
+            "symbols_per_node": {
+              "kind": "categorical",
+              "probs": [
+                0.5,
+                0.35,
+                0.15
+              ],
+              "values": [
+                3,
+                4,
+                5
+              ]
+            },
+            "weight_mode": "uniform",
+            "zipf_exponent": 1.3
+          }
+        ],
+        "repeats": 3,
+        "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n300",
+        "thread_count": 1,
+        "thread_settings_enforced": true,
+        "timeout_seconds": 1200.0,
+        "timing_semantics": {
+          "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+          "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+          "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+          "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+          "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+        },
+        "warmup": 1
+      },
+      "output_dir": "benchmarking/results/implementation_comparison_v2/dense_overlap_size/n300",
+      "point_label": "n300",
+      "sweep_kind": "size",
+      "sweep_name": "dense_overlap_size",
+      "x_name": "nodes_per_tree",
+      "x_value": 300
+    },
+    {
+      "metadata": {
+        "algorithm_order_seed": 20260928,
+        "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+        "algorithms": [
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Generic O(nm) exact dynamic program.",
+            "exact": true,
+            "family": "generic",
+            "kwargs": {
+              "method": "exact"
+            },
+            "name": "exact_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Specialized integerized/Numba exact matcher.",
+            "exact": true,
+            "family": "fast_dense",
+            "kwargs": {},
+            "name": "fast_dense"
+          }
+        ],
+        "config": {
+          "algorithm_order_seed": 20260928,
+          "algorithms": [
+            "exact_dense",
+            "fast_dense"
+          ],
+          "exact_score_abs_tol": 1e-05,
+          "exact_score_rel_tol": 1e-06,
+          "execution_mode": "isolated",
+          "max_dense_cells": 30000000,
+          "max_sparse_posting_hits": 50000000,
+          "quality_floor": 0.99,
+          "regimes": [
+            {
+              "alphabet_size": 8,
+              "comparison": "tree_tree",
+              "expected_algorithm": "fast_dense",
+              "n_g": 600,
+              "n_h": 600,
+              "n_instances": 3,
+              "name": "dense_overlap_size__n600",
+              "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+              "planted_length": 12,
+              "score_mode": "overlap",
+              "seed": 1102,
+              "shape_g": "medium",
+              "shape_h": "medium",
+              "symbol_distribution": "uniform",
+              "symbols_per_node": {
+                "kind": "categorical",
+                "probs": [
+                  0.5,
+                  0.35,
+                  0.15
+                ],
+                "values": [
+                  3,
+                  4,
+                  5
+                ]
+              },
+              "weight_mode": "uniform"
+            }
+          ],
+          "repeats": 3,
+          "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n600",
+          "thread_count": 1,
+          "timeout_seconds": 1200,
+          "warmup": 1
+        },
+        "config_hash": "pathmatch_beedaae6fead",
+        "environment": {
+          "cpu_count": 24,
+          "machine": "x86_64",
+          "numba_version": "0.67.0",
+          "numpy_version": "2.5.3",
+          "pandas_version": "3.0.6",
+          "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+          "processor": "x86_64",
+          "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+          "thread_environment": {
+            "MKL_NUM_THREADS": null,
+            "NUMBA_NUM_THREADS": null,
+            "OMP_NUM_THREADS": null,
+            "OPENBLAS_NUM_THREADS": null
+          }
+        },
+        "exact_score_abs_tol": 1e-05,
+        "exact_score_rel_tol": 1e-06,
+        "execution_mode": "isolated",
+        "generation_seconds": 0.09802444599336013,
+        "max_dense_cells": 30000000,
+        "max_sparse_posting_hits": 50000000,
+        "quality_floor": 0.99,
+        "regimes": [
+          {
+            "alphabet_size": 8,
+            "comparison": "tree_tree",
+            "depth_g": null,
+            "depth_h": null,
+            "expected_algorithm": "fast_dense",
+            "max_token_weight": 8.0,
+            "n_g": 600,
+            "n_h": 600,
+            "n_instances": 3,
+            "name": "dense_overlap_size__n600",
+            "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+            "p_obs_g": 0.9,
+            "p_obs_h": 0.9,
+            "planted_distinct_tokens": null,
+            "planted_length": 12,
+            "planted_path_selection": "random_leaf",
+            "planted_position_mode": "even",
+            "planted_tail_fraction": 0.2,
+            "planted_token_policy": "background",
+            "reserved_token_weight": 4.0,
+            "score_mode": "overlap",
+            "seed": 1102,
+            "shape_g": "medium",
+            "shape_h": "medium",
+            "symbol_distribution": "uniform",
+            "symbols_per_node": {
+              "kind": "categorical",
+              "probs": [
+                0.5,
+                0.35,
+                0.15
+              ],
+              "values": [
+                3,
+                4,
+                5
+              ]
+            },
+            "weight_mode": "uniform",
+            "zipf_exponent": 1.3
+          }
+        ],
+        "repeats": 3,
+        "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n600",
+        "thread_count": 1,
+        "thread_settings_enforced": true,
+        "timeout_seconds": 1200.0,
+        "timing_semantics": {
+          "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+          "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+          "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+          "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+          "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+        },
+        "warmup": 1
+      },
+      "output_dir": "benchmarking/results/implementation_comparison_v2/dense_overlap_size/n600",
+      "point_label": "n600",
+      "sweep_kind": "size",
+      "sweep_name": "dense_overlap_size",
+      "x_name": "nodes_per_tree",
+      "x_value": 600
+    },
+    {
+      "metadata": {
+        "algorithm_order_seed": 20260928,
+        "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+        "algorithms": [
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Generic O(nm) exact dynamic program.",
+            "exact": true,
+            "family": "generic",
+            "kwargs": {
+              "method": "exact"
+            },
+            "name": "exact_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Specialized integerized/Numba exact matcher.",
+            "exact": true,
+            "family": "fast_dense",
+            "kwargs": {},
+            "name": "fast_dense"
+          }
+        ],
+        "config": {
+          "algorithm_order_seed": 20260928,
+          "algorithms": [
+            "exact_dense",
+            "fast_dense"
+          ],
+          "exact_score_abs_tol": 1e-05,
+          "exact_score_rel_tol": 1e-06,
+          "execution_mode": "isolated",
+          "max_dense_cells": 30000000,
+          "max_sparse_posting_hits": 50000000,
+          "quality_floor": 0.99,
+          "regimes": [
+            {
+              "alphabet_size": 8,
+              "comparison": "tree_tree",
+              "expected_algorithm": "fast_dense",
+              "n_g": 1000,
+              "n_h": 1000,
+              "n_instances": 3,
+              "name": "dense_overlap_size__n1000",
+              "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+              "planted_length": 12,
+              "score_mode": "overlap",
+              "seed": 1102,
+              "shape_g": "medium",
+              "shape_h": "medium",
+              "symbol_distribution": "uniform",
+              "symbols_per_node": {
+                "kind": "categorical",
+                "probs": [
+                  0.5,
+                  0.35,
+                  0.15
+                ],
+                "values": [
+                  3,
+                  4,
+                  5
+                ]
+              },
+              "weight_mode": "uniform"
+            }
+          ],
+          "repeats": 3,
+          "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n1000",
+          "thread_count": 1,
+          "timeout_seconds": 1200,
+          "warmup": 1
+        },
+        "config_hash": "pathmatch_ddc9c4d88eae",
+        "environment": {
+          "cpu_count": 24,
+          "machine": "x86_64",
+          "numba_version": "0.67.0",
+          "numpy_version": "2.5.3",
+          "pandas_version": "3.0.6",
+          "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+          "processor": "x86_64",
+          "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+          "thread_environment": {
+            "MKL_NUM_THREADS": null,
+            "NUMBA_NUM_THREADS": null,
+            "OMP_NUM_THREADS": null,
+            "OPENBLAS_NUM_THREADS": null
+          }
+        },
+        "exact_score_abs_tol": 1e-05,
+        "exact_score_rel_tol": 1e-06,
+        "execution_mode": "isolated",
+        "generation_seconds": 0.13036183299846016,
+        "max_dense_cells": 30000000,
+        "max_sparse_posting_hits": 50000000,
+        "quality_floor": 0.99,
+        "regimes": [
+          {
+            "alphabet_size": 8,
+            "comparison": "tree_tree",
+            "depth_g": null,
+            "depth_h": null,
+            "expected_algorithm": "fast_dense",
+            "max_token_weight": 8.0,
+            "n_g": 1000,
+            "n_h": 1000,
+            "n_instances": 3,
+            "name": "dense_overlap_size__n1000",
+            "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+            "p_obs_g": 0.9,
+            "p_obs_h": 0.9,
+            "planted_distinct_tokens": null,
+            "planted_length": 12,
+            "planted_path_selection": "random_leaf",
+            "planted_position_mode": "even",
+            "planted_tail_fraction": 0.2,
+            "planted_token_policy": "background",
+            "reserved_token_weight": 4.0,
+            "score_mode": "overlap",
+            "seed": 1102,
+            "shape_g": "medium",
+            "shape_h": "medium",
+            "symbol_distribution": "uniform",
+            "symbols_per_node": {
+              "kind": "categorical",
+              "probs": [
+                0.5,
+                0.35,
+                0.15
+              ],
+              "values": [
+                3,
+                4,
+                5
+              ]
+            },
+            "weight_mode": "uniform",
+            "zipf_exponent": 1.3
+          }
+        ],
+        "repeats": 3,
+        "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n1000",
+        "thread_count": 1,
+        "thread_settings_enforced": true,
+        "timeout_seconds": 1200.0,
+        "timing_semantics": {
+          "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+          "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+          "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+          "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+          "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+        },
+        "warmup": 1
+      },
+      "output_dir": "benchmarking/results/implementation_comparison_v2/dense_overlap_size/n1000",
+      "point_label": "n1000",
+      "sweep_kind": "size",
+      "sweep_name": "dense_overlap_size",
+      "x_name": "nodes_per_tree",
+      "x_value": 1000
+    },
+    {
+      "metadata": {
+        "algorithm_order_seed": 20260928,
+        "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+        "algorithms": [
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Generic O(nm) exact dynamic program.",
+            "exact": true,
+            "family": "generic",
+            "kwargs": {
+              "method": "exact"
+            },
+            "name": "exact_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Specialized integerized/Numba exact matcher.",
+            "exact": true,
+            "family": "fast_dense",
+            "kwargs": {},
+            "name": "fast_dense"
+          }
+        ],
+        "config": {
+          "algorithm_order_seed": 20260928,
+          "algorithms": [
+            "exact_dense",
+            "fast_dense"
+          ],
+          "exact_score_abs_tol": 1e-05,
+          "exact_score_rel_tol": 1e-06,
+          "execution_mode": "isolated",
+          "max_dense_cells": 30000000,
+          "max_sparse_posting_hits": 50000000,
+          "quality_floor": 0.99,
+          "regimes": [
+            {
+              "alphabet_size": 8,
+              "comparison": "tree_tree",
+              "expected_algorithm": "fast_dense",
+              "n_g": 1600,
+              "n_h": 1600,
+              "n_instances": 3,
+              "name": "dense_overlap_size__n1600",
+              "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+              "planted_length": 12,
+              "score_mode": "overlap",
+              "seed": 1102,
+              "shape_g": "medium",
+              "shape_h": "medium",
+              "symbol_distribution": "uniform",
+              "symbols_per_node": {
+                "kind": "categorical",
+                "probs": [
+                  0.5,
+                  0.35,
+                  0.15
+                ],
+                "values": [
+                  3,
+                  4,
+                  5
+                ]
+              },
+              "weight_mode": "uniform"
+            }
+          ],
+          "repeats": 3,
+          "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n1600",
+          "thread_count": 1,
+          "timeout_seconds": 1200,
+          "warmup": 1
+        },
+        "config_hash": "pathmatch_53c8cd53d04a",
+        "environment": {
+          "cpu_count": 24,
+          "machine": "x86_64",
+          "numba_version": "0.67.0",
+          "numpy_version": "2.5.3",
+          "pandas_version": "3.0.6",
+          "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+          "processor": "x86_64",
+          "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+          "thread_environment": {
+            "MKL_NUM_THREADS": null,
+            "NUMBA_NUM_THREADS": null,
+            "OMP_NUM_THREADS": null,
+            "OPENBLAS_NUM_THREADS": null
+          }
+        },
+        "exact_score_abs_tol": 1e-05,
+        "exact_score_rel_tol": 1e-06,
+        "execution_mode": "isolated",
+        "generation_seconds": 0.21179547099745832,
+        "max_dense_cells": 30000000,
+        "max_sparse_posting_hits": 50000000,
+        "quality_floor": 0.99,
+        "regimes": [
+          {
+            "alphabet_size": 8,
+            "comparison": "tree_tree",
+            "depth_g": null,
+            "depth_h": null,
+            "expected_algorithm": "fast_dense",
+            "max_token_weight": 8.0,
+            "n_g": 1600,
+            "n_h": 1600,
+            "n_instances": 3,
+            "name": "dense_overlap_size__n1600",
+            "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+            "p_obs_g": 0.9,
+            "p_obs_h": 0.9,
+            "planted_distinct_tokens": null,
+            "planted_length": 12,
+            "planted_path_selection": "random_leaf",
+            "planted_position_mode": "even",
+            "planted_tail_fraction": 0.2,
+            "planted_token_policy": "background",
+            "reserved_token_weight": 4.0,
+            "score_mode": "overlap",
+            "seed": 1102,
+            "shape_g": "medium",
+            "shape_h": "medium",
+            "symbol_distribution": "uniform",
+            "symbols_per_node": {
+              "kind": "categorical",
+              "probs": [
+                0.5,
+                0.35,
+                0.15
+              ],
+              "values": [
+                3,
+                4,
+                5
+              ]
+            },
+            "weight_mode": "uniform",
+            "zipf_exponent": 1.3
+          }
+        ],
+        "repeats": 3,
+        "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n1600",
+        "thread_count": 1,
+        "thread_settings_enforced": true,
+        "timeout_seconds": 1200.0,
+        "timing_semantics": {
+          "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+          "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+          "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+          "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+          "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+        },
+        "warmup": 1
+      },
+      "output_dir": "benchmarking/results/implementation_comparison_v2/dense_overlap_size/n1600",
+      "point_label": "n1600",
+      "sweep_kind": "size",
+      "sweep_name": "dense_overlap_size",
+      "x_name": "nodes_per_tree",
+      "x_value": 1600
+    },
+    {
+      "metadata": {
+        "algorithm_order_seed": 20260928,
+        "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+        "algorithms": [
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Generic O(nm) exact dynamic program.",
+            "exact": true,
+            "family": "generic",
+            "kwargs": {
+              "method": "exact"
+            },
+            "name": "exact_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Specialized integerized/Numba exact matcher.",
+            "exact": true,
+            "family": "fast_dense",
+            "kwargs": {},
+            "name": "fast_dense"
+          }
+        ],
+        "config": {
+          "algorithm_order_seed": 20260928,
+          "algorithms": [
+            "exact_dense",
+            "fast_dense"
+          ],
+          "exact_score_abs_tol": 1e-05,
+          "exact_score_rel_tol": 1e-06,
+          "execution_mode": "isolated",
+          "max_dense_cells": 30000000,
+          "max_sparse_posting_hits": 50000000,
+          "quality_floor": 0.99,
+          "regimes": [
+            {
+              "alphabet_size": 8,
+              "comparison": "tree_tree",
+              "expected_algorithm": "fast_dense",
+              "n_g": 2400,
+              "n_h": 2400,
+              "n_instances": 3,
+              "name": "dense_overlap_size__n2400",
+              "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+              "planted_length": 12,
+              "score_mode": "overlap",
+              "seed": 1102,
+              "shape_g": "medium",
+              "shape_h": "medium",
+              "symbol_distribution": "uniform",
+              "symbols_per_node": {
+                "kind": "categorical",
+                "probs": [
+                  0.5,
+                  0.35,
+                  0.15
+                ],
+                "values": [
+                  3,
+                  4,
+                  5
+                ]
+              },
+              "weight_mode": "uniform"
+            }
+          ],
+          "repeats": 3,
+          "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n2400",
+          "thread_count": 1,
+          "timeout_seconds": 1200,
+          "warmup": 1
+        },
+        "config_hash": "pathmatch_0109821f6df2",
+        "environment": {
+          "cpu_count": 24,
+          "machine": "x86_64",
+          "numba_version": "0.67.0",
+          "numpy_version": "2.5.3",
+          "pandas_version": "3.0.6",
+          "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+          "processor": "x86_64",
+          "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+          "thread_environment": {
+            "MKL_NUM_THREADS": null,
+            "NUMBA_NUM_THREADS": null,
+            "OMP_NUM_THREADS": null,
+            "OPENBLAS_NUM_THREADS": null
+          }
+        },
+        "exact_score_abs_tol": 1e-05,
+        "exact_score_rel_tol": 1e-06,
+        "execution_mode": "isolated",
+        "generation_seconds": 0.33301504101837054,
+        "max_dense_cells": 30000000,
+        "max_sparse_posting_hits": 50000000,
+        "quality_floor": 0.99,
+        "regimes": [
+          {
+            "alphabet_size": 8,
+            "comparison": "tree_tree",
+            "depth_g": null,
+            "depth_h": null,
+            "expected_algorithm": "fast_dense",
+            "max_token_weight": 8.0,
+            "n_g": 2400,
+            "n_h": 2400,
+            "n_instances": 3,
+            "name": "dense_overlap_size__n2400",
+            "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+            "p_obs_g": 0.9,
+            "p_obs_h": 0.9,
+            "planted_distinct_tokens": null,
+            "planted_length": 12,
+            "planted_path_selection": "random_leaf",
+            "planted_position_mode": "even",
+            "planted_tail_fraction": 0.2,
+            "planted_token_policy": "background",
+            "reserved_token_weight": 4.0,
+            "score_mode": "overlap",
+            "seed": 1102,
+            "shape_g": "medium",
+            "shape_h": "medium",
+            "symbol_distribution": "uniform",
+            "symbols_per_node": {
+              "kind": "categorical",
+              "probs": [
+                0.5,
+                0.35,
+                0.15
+              ],
+              "values": [
+                3,
+                4,
+                5
+              ]
+            },
+            "weight_mode": "uniform",
+            "zipf_exponent": 1.3
+          }
+        ],
+        "repeats": 3,
+        "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n2400",
+        "thread_count": 1,
+        "thread_settings_enforced": true,
+        "timeout_seconds": 1200.0,
+        "timing_semantics": {
+          "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+          "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+          "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+          "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+          "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+        },
+        "warmup": 1
+      },
+      "output_dir": "benchmarking/results/implementation_comparison_v2/dense_overlap_size/n2400",
+      "point_label": "n2400",
+      "sweep_kind": "size",
+      "sweep_name": "dense_overlap_size",
+      "x_name": "nodes_per_tree",
+      "x_value": 2400
+    },
+    {
+      "metadata": {
+        "algorithm_order_seed": 20260928,
+        "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+        "algorithms": [
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Generic O(nm) exact dynamic program.",
+            "exact": true,
+            "family": "generic",
+            "kwargs": {
+              "method": "exact"
+            },
+            "name": "exact_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Specialized integerized/Numba exact matcher.",
+            "exact": true,
+            "family": "fast_dense",
+            "kwargs": {},
+            "name": "fast_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Deterministic score-only Algorithm 7 state space with explicit B=200 and expansion budget 64.",
+            "exact": false,
+            "family": "generic",
+            "kwargs": {
+              "beam_balance_penalty": 0.0,
+              "beam_candidate_future_weight": 0.0,
+              "beam_expansion_width": 64,
+              "beam_gap_penalty": 0.0,
+              "beam_lookahead": false,
+              "beam_n_restarts": 1,
+              "beam_priority_future_weight": 0.0,
+              "beam_priority_length_weight": 0.0,
+              "beam_random_fraction": 0.0,
+              "beam_rarity_weight": 0.0,
+              "beam_symmetric": false,
+              "beam_width": 200,
+              "candidate_select_mode": "first",
+              "method": "beam",
+              "seed": 0
+            },
+            "name": "beam_partial_score"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Encoded deterministic score-only partial-matching beam with reusable token-posting indices.",
+            "exact": false,
+            "family": "fast_beam",
+            "kwargs": {
+              "beam_width": 200,
+              "expansion_width": 64,
+              "max_nodes_per_token_side": 8,
+              "max_token_types_per_expansion": 2048,
+              "search": "partial"
+            },
+            "name": "fast_beam_partial"
+          }
+        ],
+        "config": {
+          "algorithm_order_seed": 20260928,
+          "algorithms": [
+            "exact_dense",
+            "fast_dense",
+            "beam_partial_score",
+            "fast_beam_partial"
+          ],
+          "exact_score_abs_tol": 1e-05,
+          "exact_score_rel_tol": 1e-06,
+          "execution_mode": "isolated",
+          "max_dense_cells": 30000000,
+          "max_sparse_posting_hits": 50000000,
+          "quality_floor": 0.99,
+          "regimes": [
+            {
+              "alphabet_size": 30,
+              "comparison": "tree_tree",
+              "depth_g": 130,
+              "depth_h": 130,
+              "expected_algorithm": "fast_dense",
+              "n_g": 800,
+              "n_h": 800,
+              "n_instances": 3,
+              "name": "partial_beam_implementation_rare_anchor__n800",
+              "notes": "Exact-oracle companion to the large rare-anchor stress regime. The score-only partial beam should preserve the delayed rare anchors and remain above the 99% quality floor, while local beams may prune the relevant branch; at this smaller scale the specialized dense exact method is still expected to be fastest.",
+              "p_obs_g": 1.0,
+              "p_obs_h": 1.0,
+              "planted_distinct_tokens": 14,
+              "planted_length": 14,
+              "planted_path_selection": "random_leaf",
+              "planted_token_policy": "reserved",
+              "reserved_token_weight": 1000.0,
+              "score_mode": "equality",
+              "seed": 20267991,
+              "shape_g": "medium",
+              "shape_h": "medium",
+              "symbol_distribution": "zipf",
+              "symbols_per_node": 1,
+              "weight_mode": "inverse_sqrt",
+              "zipf_exponent": 1.5
+            }
+          ],
+          "repeats": 3,
+          "suite_name": "generic_encoded_implementation_comparison_v2__partial_beam_implementation_rare_anchor__n800",
+          "thread_count": 1,
+          "timeout_seconds": 1200,
+          "warmup": 1
+        },
+        "config_hash": "pathmatch_e64af3a312a7",
+        "environment": {
+          "cpu_count": 24,
+          "machine": "x86_64",
+          "numba_version": "0.67.0",
+          "numpy_version": "2.5.3",
+          "pandas_version": "3.0.6",
+          "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+          "processor": "x86_64",
+          "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+          "thread_environment": {
+            "MKL_NUM_THREADS": null,
+            "NUMBA_NUM_THREADS": null,
+            "OMP_NUM_THREADS": null,
+            "OPENBLAS_NUM_THREADS": null
+          }
+        },
+        "exact_score_abs_tol": 1e-05,
+        "exact_score_rel_tol": 1e-06,
+        "execution_mode": "isolated",
+        "generation_seconds": 0.08443678799085319,
+        "max_dense_cells": 30000000,
+        "max_sparse_posting_hits": 50000000,
+        "quality_floor": 0.99,
+        "regimes": [
+          {
+            "alphabet_size": 30,
+            "comparison": "tree_tree",
+            "depth_g": 130,
+            "depth_h": 130,
+            "expected_algorithm": "fast_dense",
+            "max_token_weight": 8.0,
+            "n_g": 800,
+            "n_h": 800,
+            "n_instances": 3,
+            "name": "partial_beam_implementation_rare_anchor__n800",
+            "notes": "Exact-oracle companion to the large rare-anchor stress regime. The score-only partial beam should preserve the delayed rare anchors and remain above the 99% quality floor, while local beams may prune the relevant branch; at this smaller scale the specialized dense exact method is still expected to be fastest.",
+            "p_obs_g": 1.0,
+            "p_obs_h": 1.0,
+            "planted_distinct_tokens": 14,
+            "planted_length": 14,
+            "planted_path_selection": "random_leaf",
+            "planted_position_mode": "even",
+            "planted_tail_fraction": 0.2,
+            "planted_token_policy": "reserved",
+            "reserved_token_weight": 1000.0,
+            "score_mode": "equality",
+            "seed": 20267991,
+            "shape_g": "medium",
+            "shape_h": "medium",
+            "symbol_distribution": "zipf",
+            "symbols_per_node": 1,
+            "weight_mode": "inverse_sqrt",
+            "zipf_exponent": 1.5
+          }
+        ],
+        "repeats": 3,
+        "suite_name": "generic_encoded_implementation_comparison_v2__partial_beam_implementation_rare_anchor__n800",
+        "thread_count": 1,
+        "thread_settings_enforced": true,
+        "timeout_seconds": 1200.0,
+        "timing_semantics": {
+          "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+          "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+          "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+          "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+          "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+        },
+        "warmup": 1
+      },
+      "output_dir": "benchmarking/results/implementation_comparison_v2/partial_beam_implementation_rare_anchor/n800",
+      "point_label": "n800",
+      "sweep_kind": "size",
+      "sweep_name": "partial_beam_implementation_rare_anchor",
+      "x_name": "nodes_per_tree",
+      "x_value": 800
+    },
+    {
+      "metadata": {
+        "algorithm_order_seed": 20260928,
+        "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+        "algorithms": [
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Generic O(nm) exact dynamic program.",
+            "exact": true,
+            "family": "generic",
+            "kwargs": {
+              "method": "exact"
+            },
+            "name": "exact_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Specialized integerized/Numba exact matcher.",
+            "exact": true,
+            "family": "fast_dense",
+            "kwargs": {},
+            "name": "fast_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Deterministic score-only Algorithm 7 state space with explicit B=200 and expansion budget 64.",
+            "exact": false,
+            "family": "generic",
+            "kwargs": {
+              "beam_balance_penalty": 0.0,
+              "beam_candidate_future_weight": 0.0,
+              "beam_expansion_width": 64,
+              "beam_gap_penalty": 0.0,
+              "beam_lookahead": false,
+              "beam_n_restarts": 1,
+              "beam_priority_future_weight": 0.0,
+              "beam_priority_length_weight": 0.0,
+              "beam_random_fraction": 0.0,
+              "beam_rarity_weight": 0.0,
+              "beam_symmetric": false,
+              "beam_width": 200,
+              "candidate_select_mode": "first",
+              "method": "beam",
+              "seed": 0
+            },
+            "name": "beam_partial_score"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Encoded deterministic score-only partial-matching beam with reusable token-posting indices.",
+            "exact": false,
+            "family": "fast_beam",
+            "kwargs": {
+              "beam_width": 200,
+              "expansion_width": 64,
+              "max_nodes_per_token_side": 8,
+              "max_token_types_per_expansion": 2048,
+              "search": "partial"
+            },
+            "name": "fast_beam_partial"
+          }
+        ],
+        "config": {
+          "algorithm_order_seed": 20260928,
+          "algorithms": [
+            "exact_dense",
+            "fast_dense",
+            "beam_partial_score",
+            "fast_beam_partial"
+          ],
+          "exact_score_abs_tol": 1e-05,
+          "exact_score_rel_tol": 1e-06,
+          "execution_mode": "isolated",
+          "max_dense_cells": 30000000,
+          "max_sparse_posting_hits": 50000000,
+          "quality_floor": 0.99,
+          "regimes": [
+            {
+              "alphabet_size": 30,
+              "comparison": "tree_tree",
+              "depth_g": 160,
+              "depth_h": 160,
+              "expected_algorithm": "fast_dense",
+              "n_g": 1300,
+              "n_h": 1300,
+              "n_instances": 3,
+              "name": "partial_beam_implementation_rare_anchor__n1300",
+              "notes": "Exact-oracle companion to the large rare-anchor stress regime. The score-only partial beam should preserve the delayed rare anchors and remain above the 99% quality floor, while local beams may prune the relevant branch; at this smaller scale the specialized dense exact method is still expected to be fastest.",
+              "p_obs_g": 1.0,
+              "p_obs_h": 1.0,
+              "planted_distinct_tokens": 14,
+              "planted_length": 14,
+              "planted_path_selection": "random_leaf",
+              "planted_token_policy": "reserved",
+              "reserved_token_weight": 1000.0,
+              "score_mode": "equality",
+              "seed": 20267991,
+              "shape_g": "medium",
+              "shape_h": "medium",
+              "symbol_distribution": "zipf",
+              "symbols_per_node": 1,
+              "weight_mode": "inverse_sqrt",
+              "zipf_exponent": 1.5
+            }
+          ],
+          "repeats": 3,
+          "suite_name": "generic_encoded_implementation_comparison_v2__partial_beam_implementation_rare_anchor__n1300",
+          "thread_count": 1,
+          "timeout_seconds": 1200,
+          "warmup": 1
+        },
+        "config_hash": "pathmatch_4384f25cd5db",
+        "environment": {
+          "cpu_count": 24,
+          "machine": "x86_64",
+          "numba_version": "0.67.0",
+          "numpy_version": "2.5.3",
+          "pandas_version": "3.0.6",
+          "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+          "processor": "x86_64",
+          "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+          "thread_environment": {
+            "MKL_NUM_THREADS": null,
+            "NUMBA_NUM_THREADS": null,
+            "OMP_NUM_THREADS": null,
+            "OPENBLAS_NUM_THREADS": null
+          }
+        },
+        "exact_score_abs_tol": 1e-05,
+        "exact_score_rel_tol": 1e-06,
+        "execution_mode": "isolated",
+        "generation_seconds": 0.13510551501531154,
+        "max_dense_cells": 30000000,
+        "max_sparse_posting_hits": 50000000,
+        "quality_floor": 0.99,
+        "regimes": [
+          {
+            "alphabet_size": 30,
+            "comparison": "tree_tree",
+            "depth_g": 160,
+            "depth_h": 160,
+            "expected_algorithm": "fast_dense",
+            "max_token_weight": 8.0,
+            "n_g": 1300,
+            "n_h": 1300,
+            "n_instances": 3,
+            "name": "partial_beam_implementation_rare_anchor__n1300",
+            "notes": "Exact-oracle companion to the large rare-anchor stress regime. The score-only partial beam should preserve the delayed rare anchors and remain above the 99% quality floor, while local beams may prune the relevant branch; at this smaller scale the specialized dense exact method is still expected to be fastest.",
+            "p_obs_g": 1.0,
+            "p_obs_h": 1.0,
+            "planted_distinct_tokens": 14,
+            "planted_length": 14,
+            "planted_path_selection": "random_leaf",
+            "planted_position_mode": "even",
+            "planted_tail_fraction": 0.2,
+            "planted_token_policy": "reserved",
+            "reserved_token_weight": 1000.0,
+            "score_mode": "equality",
+            "seed": 20267991,
+            "shape_g": "medium",
+            "shape_h": "medium",
+            "symbol_distribution": "zipf",
+            "symbols_per_node": 1,
+            "weight_mode": "inverse_sqrt",
+            "zipf_exponent": 1.5
+          }
+        ],
+        "repeats": 3,
+        "suite_name": "generic_encoded_implementation_comparison_v2__partial_beam_implementation_rare_anchor__n1300",
+        "thread_count": 1,
+        "thread_settings_enforced": true,
+        "timeout_seconds": 1200.0,
+        "timing_semantics": {
+          "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+          "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+          "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+          "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+          "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+        },
+        "warmup": 1
+      },
+      "output_dir": "benchmarking/results/implementation_comparison_v2/partial_beam_implementation_rare_anchor/n1300",
+      "point_label": "n1300",
+      "sweep_kind": "size",
+      "sweep_name": "partial_beam_implementation_rare_anchor",
+      "x_name": "nodes_per_tree",
+      "x_value": 1300
+    },
+    {
+      "metadata": {
+        "algorithm_order_seed": 20260928,
+        "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+        "algorithms": [
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Generic O(nm) exact dynamic program.",
+            "exact": true,
+            "family": "generic",
+            "kwargs": {
+              "method": "exact"
+            },
+            "name": "exact_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Specialized integerized/Numba exact matcher.",
+            "exact": true,
+            "family": "fast_dense",
+            "kwargs": {},
+            "name": "fast_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Deterministic score-only Algorithm 7 state space with explicit B=200 and expansion budget 64.",
+            "exact": false,
+            "family": "generic",
+            "kwargs": {
+              "beam_balance_penalty": 0.0,
+              "beam_candidate_future_weight": 0.0,
+              "beam_expansion_width": 64,
+              "beam_gap_penalty": 0.0,
+              "beam_lookahead": false,
+              "beam_n_restarts": 1,
+              "beam_priority_future_weight": 0.0,
+              "beam_priority_length_weight": 0.0,
+              "beam_random_fraction": 0.0,
+              "beam_rarity_weight": 0.0,
+              "beam_symmetric": false,
+              "beam_width": 200,
+              "candidate_select_mode": "first",
+              "method": "beam",
+              "seed": 0
+            },
+            "name": "beam_partial_score"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Encoded deterministic score-only partial-matching beam with reusable token-posting indices.",
+            "exact": false,
+            "family": "fast_beam",
+            "kwargs": {
+              "beam_width": 200,
+              "expansion_width": 64,
+              "max_nodes_per_token_side": 8,
+              "max_token_types_per_expansion": 2048,
+              "search": "partial"
+            },
+            "name": "fast_beam_partial"
+          }
+        ],
+        "config": {
+          "algorithm_order_seed": 20260928,
+          "algorithms": [
+            "exact_dense",
+            "fast_dense",
+            "beam_partial_score",
+            "fast_beam_partial"
+          ],
+          "exact_score_abs_tol": 1e-05,
+          "exact_score_rel_tol": 1e-06,
+          "execution_mode": "isolated",
+          "max_dense_cells": 30000000,
+          "max_sparse_posting_hits": 50000000,
+          "quality_floor": 0.99,
+          "regimes": [
+            {
+              "alphabet_size": 30,
+              "comparison": "tree_tree",
+              "depth_g": 200,
+              "depth_h": 200,
+              "expected_algorithm": "fast_dense",
+              "n_g": 2000,
+              "n_h": 2000,
+              "n_instances": 3,
+              "name": "partial_beam_implementation_rare_anchor__n2000",
+              "notes": "Exact-oracle companion to the large rare-anchor stress regime. The score-only partial beam should preserve the delayed rare anchors and remain above the 99% quality floor, while local beams may prune the relevant branch; at this smaller scale the specialized dense exact method is still expected to be fastest.",
+              "p_obs_g": 1.0,
+              "p_obs_h": 1.0,
+              "planted_distinct_tokens": 14,
+              "planted_length": 14,
+              "planted_path_selection": "random_leaf",
+              "planted_token_policy": "reserved",
+              "reserved_token_weight": 1000.0,
+              "score_mode": "equality",
+              "seed": 20267991,
+              "shape_g": "medium",
+              "shape_h": "medium",
+              "symbol_distribution": "zipf",
+              "symbols_per_node": 1,
+              "weight_mode": "inverse_sqrt",
+              "zipf_exponent": 1.5
+            }
+          ],
+          "repeats": 3,
+          "suite_name": "generic_encoded_implementation_comparison_v2__partial_beam_implementation_rare_anchor__n2000",
+          "thread_count": 1,
+          "timeout_seconds": 1200,
+          "warmup": 1
+        },
+        "config_hash": "pathmatch_b89a35f5e36b",
+        "environment": {
+          "cpu_count": 24,
+          "machine": "x86_64",
+          "numba_version": "0.67.0",
+          "numpy_version": "2.5.3",
+          "pandas_version": "3.0.6",
+          "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+          "processor": "x86_64",
+          "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+          "thread_environment": {
+            "MKL_NUM_THREADS": null,
+            "NUMBA_NUM_THREADS": null,
+            "OMP_NUM_THREADS": null,
+            "OPENBLAS_NUM_THREADS": null
+          }
+        },
+        "exact_score_abs_tol": 1e-05,
+        "exact_score_rel_tol": 1e-06,
+        "execution_mode": "isolated",
+        "generation_seconds": 0.20277266699122265,
+        "max_dense_cells": 30000000,
+        "max_sparse_posting_hits": 50000000,
+        "quality_floor": 0.99,
+        "regimes": [
+          {
+            "alphabet_size": 30,
+            "comparison": "tree_tree",
+            "depth_g": 200,
+            "depth_h": 200,
+            "expected_algorithm": "fast_dense",
+            "max_token_weight": 8.0,
+            "n_g": 2000,
+            "n_h": 2000,
+            "n_instances": 3,
+            "name": "partial_beam_implementation_rare_anchor__n2000",
+            "notes": "Exact-oracle companion to the large rare-anchor stress regime. The score-only partial beam should preserve the delayed rare anchors and remain above the 99% quality floor, while local beams may prune the relevant branch; at this smaller scale the specialized dense exact method is still expected to be fastest.",
+            "p_obs_g": 1.0,
+            "p_obs_h": 1.0,
+            "planted_distinct_tokens": 14,
+            "planted_length": 14,
+            "planted_path_selection": "random_leaf",
+            "planted_position_mode": "even",
+            "planted_tail_fraction": 0.2,
+            "planted_token_policy": "reserved",
+            "reserved_token_weight": 1000.0,
+            "score_mode": "equality",
+            "seed": 20267991,
+            "shape_g": "medium",
+            "shape_h": "medium",
+            "symbol_distribution": "zipf",
+            "symbols_per_node": 1,
+            "weight_mode": "inverse_sqrt",
+            "zipf_exponent": 1.5
+          }
+        ],
+        "repeats": 3,
+        "suite_name": "generic_encoded_implementation_comparison_v2__partial_beam_implementation_rare_anchor__n2000",
+        "thread_count": 1,
+        "thread_settings_enforced": true,
+        "timeout_seconds": 1200.0,
+        "timing_semantics": {
+          "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+          "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+          "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+          "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+          "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+        },
+        "warmup": 1
+      },
+      "output_dir": "benchmarking/results/implementation_comparison_v2/partial_beam_implementation_rare_anchor/n2000",
+      "point_label": "n2000",
+      "sweep_kind": "size",
+      "sweep_name": "partial_beam_implementation_rare_anchor",
+      "x_name": "nodes_per_tree",
+      "x_value": 2000
+    },
+    {
+      "metadata": {
+        "algorithm_order_seed": 20260928,
+        "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+        "algorithms": [
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Generic O(nm) exact dynamic program.",
+            "exact": true,
+            "family": "generic",
+            "kwargs": {
+              "method": "exact"
+            },
+            "name": "exact_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Specialized integerized/Numba exact matcher.",
+            "exact": true,
+            "family": "fast_dense",
+            "kwargs": {},
+            "name": "fast_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Deterministic score-only Algorithm 7 state space with explicit B=200 and expansion budget 64.",
+            "exact": false,
+            "family": "generic",
+            "kwargs": {
+              "beam_balance_penalty": 0.0,
+              "beam_candidate_future_weight": 0.0,
+              "beam_expansion_width": 64,
+              "beam_gap_penalty": 0.0,
+              "beam_lookahead": false,
+              "beam_n_restarts": 1,
+              "beam_priority_future_weight": 0.0,
+              "beam_priority_length_weight": 0.0,
+              "beam_random_fraction": 0.0,
+              "beam_rarity_weight": 0.0,
+              "beam_symmetric": false,
+              "beam_width": 200,
+              "candidate_select_mode": "first",
+              "method": "beam",
+              "seed": 0
+            },
+            "name": "beam_partial_score"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Encoded deterministic score-only partial-matching beam with reusable token-posting indices.",
+            "exact": false,
+            "family": "fast_beam",
+            "kwargs": {
+              "beam_width": 200,
+              "expansion_width": 64,
+              "max_nodes_per_token_side": 8,
+              "max_token_types_per_expansion": 2048,
+              "search": "partial"
+            },
+            "name": "fast_beam_partial"
+          }
+        ],
+        "config": {
+          "algorithm_order_seed": 20260928,
+          "algorithms": [
+            "exact_dense",
+            "fast_dense",
+            "beam_partial_score",
+            "fast_beam_partial"
+          ],
+          "exact_score_abs_tol": 1e-05,
+          "exact_score_rel_tol": 1e-06,
+          "execution_mode": "isolated",
+          "max_dense_cells": 30000000,
+          "max_sparse_posting_hits": 50000000,
+          "quality_floor": 0.99,
+          "regimes": [
+            {
+              "alphabet_size": 30,
+              "comparison": "tree_tree",
+              "depth_g": 250,
+              "depth_h": 250,
+              "expected_algorithm": "fast_dense",
+              "n_g": 3000,
+              "n_h": 3000,
+              "n_instances": 3,
+              "name": "partial_beam_implementation_rare_anchor__n3000",
+              "notes": "Exact-oracle companion to the large rare-anchor stress regime. The score-only partial beam should preserve the delayed rare anchors and remain above the 99% quality floor, while local beams may prune the relevant branch; at this smaller scale the specialized dense exact method is still expected to be fastest.",
+              "p_obs_g": 1.0,
+              "p_obs_h": 1.0,
+              "planted_distinct_tokens": 14,
+              "planted_length": 14,
+              "planted_path_selection": "random_leaf",
+              "planted_token_policy": "reserved",
+              "reserved_token_weight": 1000.0,
+              "score_mode": "equality",
+              "seed": 20267991,
+              "shape_g": "medium",
+              "shape_h": "medium",
+              "symbol_distribution": "zipf",
+              "symbols_per_node": 1,
+              "weight_mode": "inverse_sqrt",
+              "zipf_exponent": 1.5
+            }
+          ],
+          "repeats": 3,
+          "suite_name": "generic_encoded_implementation_comparison_v2__partial_beam_implementation_rare_anchor__n3000",
+          "thread_count": 1,
+          "timeout_seconds": 1200,
+          "warmup": 1
+        },
+        "config_hash": "pathmatch_d04b41065cbd",
+        "environment": {
+          "cpu_count": 24,
+          "machine": "x86_64",
+          "numba_version": "0.67.0",
+          "numpy_version": "2.5.3",
+          "pandas_version": "3.0.6",
+          "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+          "processor": "x86_64",
+          "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+          "thread_environment": {
+            "MKL_NUM_THREADS": null,
+            "NUMBA_NUM_THREADS": null,
+            "OMP_NUM_THREADS": null,
+            "OPENBLAS_NUM_THREADS": null
+          }
+        },
+        "exact_score_abs_tol": 1e-05,
+        "exact_score_rel_tol": 1e-06,
+        "execution_mode": "isolated",
+        "generation_seconds": 0.2994586810236797,
+        "max_dense_cells": 30000000,
+        "max_sparse_posting_hits": 50000000,
+        "quality_floor": 0.99,
+        "regimes": [
+          {
+            "alphabet_size": 30,
+            "comparison": "tree_tree",
+            "depth_g": 250,
+            "depth_h": 250,
+            "expected_algorithm": "fast_dense",
+            "max_token_weight": 8.0,
+            "n_g": 3000,
+            "n_h": 3000,
+            "n_instances": 3,
+            "name": "partial_beam_implementation_rare_anchor__n3000",
+            "notes": "Exact-oracle companion to the large rare-anchor stress regime. The score-only partial beam should preserve the delayed rare anchors and remain above the 99% quality floor, while local beams may prune the relevant branch; at this smaller scale the specialized dense exact method is still expected to be fastest.",
+            "p_obs_g": 1.0,
+            "p_obs_h": 1.0,
+            "planted_distinct_tokens": 14,
+            "planted_length": 14,
+            "planted_path_selection": "random_leaf",
+            "planted_position_mode": "even",
+            "planted_tail_fraction": 0.2,
+            "planted_token_policy": "reserved",
+            "reserved_token_weight": 1000.0,
+            "score_mode": "equality",
+            "seed": 20267991,
+            "shape_g": "medium",
+            "shape_h": "medium",
+            "symbol_distribution": "zipf",
+            "symbols_per_node": 1,
+            "weight_mode": "inverse_sqrt",
+            "zipf_exponent": 1.5
+          }
+        ],
+        "repeats": 3,
+        "suite_name": "generic_encoded_implementation_comparison_v2__partial_beam_implementation_rare_anchor__n3000",
+        "thread_count": 1,
+        "thread_settings_enforced": true,
+        "timeout_seconds": 1200.0,
+        "timing_semantics": {
+          "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+          "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+          "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+          "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+          "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+        },
+        "warmup": 1
+      },
+      "output_dir": "benchmarking/results/implementation_comparison_v2/partial_beam_implementation_rare_anchor/n3000",
+      "point_label": "n3000",
+      "sweep_kind": "size",
+      "sweep_name": "partial_beam_implementation_rare_anchor",
+      "x_name": "nodes_per_tree",
+      "x_value": 3000
+    },
+    {
+      "metadata": {
+        "algorithm_order_seed": 20260928,
+        "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+        "algorithms": [
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Generic O(nm) exact dynamic program.",
+            "exact": true,
+            "family": "generic",
+            "kwargs": {
+              "method": "exact"
+            },
+            "name": "exact_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Specialized integerized/Numba exact matcher.",
+            "exact": true,
+            "family": "fast_dense",
+            "kwargs": {},
+            "name": "fast_dense"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap",
+              "jaccard"
+            ],
+            "description": "Deterministic score-only Algorithm 7 state space with explicit B=200 and expansion budget 64.",
+            "exact": false,
+            "family": "generic",
+            "kwargs": {
+              "beam_balance_penalty": 0.0,
+              "beam_candidate_future_weight": 0.0,
+              "beam_expansion_width": 64,
+              "beam_gap_penalty": 0.0,
+              "beam_lookahead": false,
+              "beam_n_restarts": 1,
+              "beam_priority_future_weight": 0.0,
+              "beam_priority_length_weight": 0.0,
+              "beam_random_fraction": 0.0,
+              "beam_rarity_weight": 0.0,
+              "beam_symmetric": false,
+              "beam_width": 200,
+              "candidate_select_mode": "first",
+              "method": "beam",
+              "seed": 0
+            },
+            "name": "beam_partial_score"
+          },
+          {
+            "compatible_score_modes": [
+              "equality",
+              "overlap"
+            ],
+            "description": "Encoded deterministic score-only partial-matching beam with reusable token-posting indices.",
+            "exact": false,
+            "family": "fast_beam",
+            "kwargs": {
+              "beam_width": 200,
+              "expansion_width": 64,
+              "max_nodes_per_token_side": 8,
+              "max_token_types_per_expansion": 2048,
+              "search": "partial"
+            },
+            "name": "fast_beam_partial"
+          }
+        ],
+        "config": {
+          "algorithm_order_seed": 20260928,
+          "algorithms": [
+            "exact_dense",
+            "fast_dense",
+            "beam_partial_score",
+            "fast_beam_partial"
+          ],
+          "exact_score_abs_tol": 1e-05,
+          "exact_score_rel_tol": 1e-06,
+          "execution_mode": "isolated",
+          "max_dense_cells": 30000000,
+          "max_sparse_posting_hits": 50000000,
+          "quality_floor": 0.99,
+          "regimes": [
+            {
+              "alphabet_size": 30,
+              "comparison": "tree_tree",
+              "depth_g": 300,
+              "depth_h": 300,
+              "expected_algorithm": "fast_dense",
+              "n_g": 5000,
+              "n_h": 5000,
+              "n_instances": 3,
+              "name": "partial_beam_implementation_rare_anchor__n5000",
+              "notes": "Exact-oracle companion to the large rare-anchor stress regime. The score-only partial beam should preserve the delayed rare anchors and remain above the 99% quality floor, while local beams may prune the relevant branch; at this smaller scale the specialized dense exact method is still expected to be fastest.",
+              "p_obs_g": 1.0,
+              "p_obs_h": 1.0,
+              "planted_distinct_tokens": 14,
+              "planted_length": 14,
+              "planted_path_selection": "random_leaf",
+              "planted_token_policy": "reserved",
+              "reserved_token_weight": 1000.0,
+              "score_mode": "equality",
+              "seed": 20267991,
+              "shape_g": "medium",
+              "shape_h": "medium",
+              "symbol_distribution": "zipf",
+              "symbols_per_node": 1,
+              "weight_mode": "inverse_sqrt",
+              "zipf_exponent": 1.5
+            }
+          ],
+          "repeats": 3,
+          "suite_name": "generic_encoded_implementation_comparison_v2__partial_beam_implementation_rare_anchor__n5000",
+          "thread_count": 1,
+          "timeout_seconds": 1200,
+          "warmup": 1
+        },
+        "config_hash": "pathmatch_d45229dece70",
+        "environment": {
+          "cpu_count": 24,
+          "machine": "x86_64",
+          "numba_version": "0.67.0",
+          "numpy_version": "2.5.3",
+          "pandas_version": "3.0.6",
+          "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+          "processor": "x86_64",
+          "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+          "thread_environment": {
+            "MKL_NUM_THREADS": null,
+            "NUMBA_NUM_THREADS": null,
+            "OMP_NUM_THREADS": null,
+            "OPENBLAS_NUM_THREADS": null
+          }
+        },
+        "exact_score_abs_tol": 1e-05,
+        "exact_score_rel_tol": 1e-06,
+        "execution_mode": "isolated",
+        "generation_seconds": 0.5015883749874774,
+        "max_dense_cells": 30000000,
+        "max_sparse_posting_hits": 50000000,
+        "quality_floor": 0.99,
+        "regimes": [
+          {
+            "alphabet_size": 30,
+            "comparison": "tree_tree",
+            "depth_g": 300,
+            "depth_h": 300,
+            "expected_algorithm": "fast_dense",
+            "max_token_weight": 8.0,
+            "n_g": 5000,
+            "n_h": 5000,
+            "n_instances": 3,
+            "name": "partial_beam_implementation_rare_anchor__n5000",
+            "notes": "Exact-oracle companion to the large rare-anchor stress regime. The score-only partial beam should preserve the delayed rare anchors and remain above the 99% quality floor, while local beams may prune the relevant branch; at this smaller scale the specialized dense exact method is still expected to be fastest.",
+            "p_obs_g": 1.0,
+            "p_obs_h": 1.0,
+            "planted_distinct_tokens": 14,
+            "planted_length": 14,
+            "planted_path_selection": "random_leaf",
+            "planted_position_mode": "even",
+            "planted_tail_fraction": 0.2,
+            "planted_token_policy": "reserved",
+            "reserved_token_weight": 1000.0,
+            "score_mode": "equality",
+            "seed": 20267991,
+            "shape_g": "medium",
+            "shape_h": "medium",
+            "symbol_distribution": "zipf",
+            "symbols_per_node": 1,
+            "weight_mode": "inverse_sqrt",
+            "zipf_exponent": 1.5
+          }
+        ],
+        "repeats": 3,
+        "suite_name": "generic_encoded_implementation_comparison_v2__partial_beam_implementation_rare_anchor__n5000",
+        "thread_count": 1,
+        "thread_settings_enforced": true,
+        "timeout_seconds": 1200.0,
+        "timing_semantics": {
+          "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+          "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+          "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+          "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+          "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+        },
+        "warmup": 1
+      },
+      "output_dir": "benchmarking/results/implementation_comparison_v2/partial_beam_implementation_rare_anchor/n5000",
+      "point_label": "n5000",
+      "sweep_kind": "size",
+      "sweep_name": "partial_beam_implementation_rare_anchor",
+      "x_name": "nodes_per_tree",
+      "x_value": 5000
+    }
+  ],
+  "suite_name": "generic_encoded_implementation_comparison_v2",
+  "sweeps": [
+    {
+      "algorithms": [
+        "exact_dense",
+        "fast_dense"
+      ],
+      "kind": "size",
+      "n_instances": 3,
+      "name": "dense_overlap_size",
+      "points": [
+        {
+          "label": "n300",
+          "overrides": {
+            "n_g": 300,
+            "n_h": 300
+          },
+          "x_value": 300
+        },
+        {
+          "label": "n600",
+          "overrides": {
+            "n_g": 600,
+            "n_h": 600
+          },
+          "x_value": 600
+        },
+        {
+          "label": "n1000",
+          "overrides": {
+            "n_g": 1000,
+            "n_h": 1000
+          },
+          "x_value": 1000
+        },
+        {
+          "label": "n1600",
+          "overrides": {
+            "n_g": 1600,
+            "n_h": 1600
+          },
+          "x_value": 1600
+        },
+        {
+          "label": "n2400",
+          "overrides": {
+            "n_g": 2400,
+            "n_h": 2400
+          },
+          "x_value": 2400
+        }
+      ],
+      "regime": "dense_common_overlap",
+      "x_name": "nodes_per_tree"
+    },
+    {
+      "algorithms": [
+        "exact_dense",
+        "fast_dense",
+        "beam_partial_score",
+        "fast_beam_partial"
+      ],
+      "kind": "size",
+      "n_instances": 3,
+      "name": "partial_beam_implementation_rare_anchor",
+      "points": [
+        {
+          "label": "n800",
+          "overrides": {
+            "depth_g": 130,
+            "depth_h": 130,
+            "n_g": 800,
+            "n_h": 800
+          },
+          "x_value": 800
+        },
+        {
+          "label": "n1300",
+          "overrides": {
+            "depth_g": 160,
+            "depth_h": 160,
+            "n_g": 1300,
+            "n_h": 1300
+          },
+          "x_value": 1300
+        },
+        {
+          "label": "n2000",
+          "overrides": {
+            "depth_g": 200,
+            "depth_h": 200,
+            "n_g": 2000,
+            "n_h": 2000
+          },
+          "x_value": 2000
+        },
+        {
+          "label": "n3000",
+          "overrides": {
+            "depth_g": 250,
+            "depth_h": 250,
+            "n_g": 3000,
+            "n_h": 3000
+          },
+          "x_value": 3000
+        },
+        {
+          "label": "n5000",
+          "overrides": {
+            "depth_g": 300,
+            "depth_h": 300,
+            "n_g": 5000,
+            "n_h": 5000
+          },
+          "x_value": 5000
+        }
+      ],
+      "regime": "rare_anchor_oracle",
+      "x_name": "nodes_per_tree"
+    }
+  ]
+}

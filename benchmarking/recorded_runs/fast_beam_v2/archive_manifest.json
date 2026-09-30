@@ -1,0 +1,393 @@
+{
+  "archived_at_utc": "2026-09-30T21:15:50.923074+00:00",
+  "repository_head_when_archived": "e8280f46dec3f6bd79968d74a8424e81f9fbeb80",
+  "provenance_note": "This HEAD is the collection-time revision, not necessarily the revision that ran older data. Original run metadata/configs are preserved unchanged.",
+  "sources": [
+    "/home/asmi28/python_code/tree_matching/benchmarking/results/algorithm_ranking_large_fast_beam_v2",
+    "/home/asmi28/python_code/tree_matching/benchmarking/results/path_match_throughput_large_fast_beam_v2",
+    "/home/asmi28/python_code/tree_matching/benchmarking/results/implementation_comparison_v2"
+  ],
+  "excluded": "PNG/PDF figures, notebooks, interpreter/Numba caches, and other non-data files",
+  "files": [
+    {
+      "path": "algorithm_ranking_large_fast_beam_v2/benchmark_metadata.json",
+      "bytes": 23078,
+      "sha256": "fd46238ce9f96103842e5aed465709fbb662b4e811118e157574cef4ea3543b7"
+    },
+    {
+      "path": "algorithm_ranking_large_fast_beam_v2/benchmark_rows.csv",
+      "bytes": 622315,
+      "sha256": "7b6653c3234d42f7fd8e3cea362ef506c219f6d9d2ae5feaf3b9559920a38401"
+    },
+    {
+      "path": "algorithm_ranking_large_fast_beam_v2/benchmark_summary.csv",
+      "bytes": 29630,
+      "sha256": "198ab809a22b095a07764a474ed7d3778696ab825945beee08382714f64acf50"
+    },
+    {
+      "path": "algorithm_ranking_large_fast_beam_v2/implementation_comparison_rows.csv",
+      "bytes": 15592,
+      "sha256": "8718673b252898d790fefacec9b1a0b47c5237041f4e2c8ec6fbd42c8632ffb7"
+    },
+    {
+      "path": "algorithm_ranking_large_fast_beam_v2/implementation_comparison_summary.csv",
+      "bytes": 3092,
+      "sha256": "16c26123b50e2dc2cd42ccc331991e2f622f943b57cf1cc7e30f451f0a0da064"
+    },
+    {
+      "path": "algorithm_ranking_large_fast_beam_v2/notebook_algorithm_table.csv",
+      "bytes": 23703,
+      "sha256": "ed0a16350cb6132c670117af52dfe77b734abd9e053bebdcf1ed68a0c7621406"
+    },
+    {
+      "path": "algorithm_ranking_large_fast_beam_v2/notebook_config.json",
+      "bytes": 7748,
+      "sha256": "e8ee8011c978a52438de96520d84ec7bade81ae149e2594e50eec233216d9072"
+    },
+    {
+      "path": "algorithm_ranking_large_fast_beam_v2/notebook_oracle_coverage.csv",
+      "bytes": 525,
+      "sha256": "388157dd28aab92e2af78e23852554be0d5a28c4c118d20c1dd45ba6bc18f5ca"
+    },
+    {
+      "path": "algorithm_ranking_large_fast_beam_v2/notebook_regime_summary.csv",
+      "bytes": 857,
+      "sha256": "4895904b6b0158fa40d5b87df0742a2b3fc65b43f3938b5a63e6de74b6f9fc69"
+    },
+    {
+      "path": "algorithm_ranking_large_fast_beam_v2/notebook_work_summary.csv",
+      "bytes": 10416,
+      "sha256": "eff1e001dbb0efb3de5ab085da481ffdfad290f0c8252fa269a7238ce66b91b3"
+    },
+    {
+      "path": "path_match_throughput_large_fast_beam_v2/implementation_comparison_rows.csv",
+      "bytes": 1544,
+      "sha256": "ab0e1108b1ff87150afdad30d8345a06d4a2d8263041d7d5c86ac13cab2a29f6"
+    },
+    {
+      "path": "path_match_throughput_large_fast_beam_v2/implementation_comparison_summary.csv",
+      "bytes": 1396,
+      "sha256": "be254a2377cb2353051979e240445dc02895f78eb48d0bd34bb9c6fbb8506e2d"
+    },
+    {
+      "path": "path_match_throughput_large_fast_beam_v2/notebook_config.json",
+      "bytes": 3613,
+      "sha256": "a77176aab68f074e9f3ff6894d050eddfe7f7565fe802de8ebe3dbfd5a047fc8"
+    },
+    {
+      "path": "path_match_throughput_large_fast_beam_v2/notebook_regime_summary.csv",
+      "bytes": 407,
+      "sha256": "bff0709842c674f298a6b29a199ca04b13742c763a967808f3a2c5bac9c71577"
+    },
+    {
+      "path": "path_match_throughput_large_fast_beam_v2/notebook_setup_table.csv",
+      "bytes": 6455,
+      "sha256": "1653f6d146c129c816bf0f44f7e97ae3908cff2b7cf22832fa5ab7b1b1fdc49b"
+    },
+    {
+      "path": "path_match_throughput_large_fast_beam_v2/notebook_throughput_table.csv",
+      "bytes": 9664,
+      "sha256": "5c78874f7a44c6532014d5a9d256260efbe30176abd2f2b715014e68a6a8a277"
+    },
+    {
+      "path": "path_match_throughput_large_fast_beam_v2/notebook_work_summary.csv",
+      "bytes": 8881,
+      "sha256": "2392e0e973174c0228bbaabe38e238e5df9ae7324d01137ee3cdb13bd806f955"
+    },
+    {
+      "path": "path_match_throughput_large_fast_beam_v2/throughput_metadata.json",
+      "bytes": 24907,
+      "sha256": "8a7f40d0f2a842df9af291c78d856e9a54cb36bd29142b8498f293ba7262a931"
+    },
+    {
+      "path": "path_match_throughput_large_fast_beam_v2/throughput_rows.csv",
+      "bytes": 50170,
+      "sha256": "a010b14efdcb97f5378872ef9c250fe645ccee33dfc3e2913f06d03ca6084ef6"
+    },
+    {
+      "path": "path_match_throughput_large_fast_beam_v2/throughput_score_matrices.npz",
+      "bytes": 23092,
+      "sha256": "8daca62181d03080b0db3465425da3c71ab36268c49f9704016c81fd64209c7c"
+    },
+    {
+      "path": "path_match_throughput_large_fast_beam_v2/throughput_summary.csv",
+      "bytes": 52634,
+      "sha256": "3d9f30ac57c67f4dc013f97a52d1a4eb4501e841f33651bf84da9cf9598c51e8"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n1000/benchmark_metadata.json",
+      "bytes": 4820,
+      "sha256": "8ba1aa29ddde660ba0120b52235c36cf0e3aee8e96f738bb18513a352170558e"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n1000/benchmark_rows.csv",
+      "bytes": 13037,
+      "sha256": "284d4630979617810196ab2d7100214bdb17159f6f200071e184266dc74fe8a4"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n1000/benchmark_summary.csv",
+      "bytes": 1844,
+      "sha256": "15f05387fabf66feb7a8d633a8ed2f641fd25edde5f58e940fff5b94a25db680"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n1000/implementation_comparison_rows.csv",
+      "bytes": 953,
+      "sha256": "b700798704f8a1358c15f28ed86299074795f0942816d1adabd9beb058cbb75f"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n1000/implementation_comparison_summary.csv",
+      "bytes": 525,
+      "sha256": "3337b73061804ba684791ca5bac59d8ab7ff440e9ef4bf371056b6a8f0bfdc1b"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n1600/benchmark_metadata.json",
+      "bytes": 4820,
+      "sha256": "a9b82f2573b4fb60365e58145289d37c16985a20535ecbc832b521ab9d2fd7fd"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n1600/benchmark_rows.csv",
+      "bytes": 12909,
+      "sha256": "dc0081b7f16686cffefaffd8d4fbbf507dc15d101e6ed1563fb6765e9fce97e8"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n1600/benchmark_summary.csv",
+      "bytes": 1841,
+      "sha256": "338fe1f07ed916453406491557cecea428d31befbd3648aba4a268b90483f64c"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n1600/implementation_comparison_rows.csv",
+      "bytes": 959,
+      "sha256": "9625d79a420a36f4da70581da1a23999f831924f3873243ed7bfb70d6e3bb2e6"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n1600/implementation_comparison_summary.csv",
+      "bytes": 526,
+      "sha256": "5e731f5b25e40b8380fd57a51ad04f0beadab75e8f03271e574cb198f7c37ac3"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n2400/benchmark_metadata.json",
+      "bytes": 4820,
+      "sha256": "6e12e0a9709971f36b0f07b0bf0f2d609607a7ab490e0005ecf02b77546fe1f9"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n2400/benchmark_rows.csv",
+      "bytes": 13024,
+      "sha256": "b0214f10d12c05fe2ffcd2ac5ce7210434b5aecbf54b7b8e0d268922a86c2219"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n2400/benchmark_summary.csv",
+      "bytes": 1836,
+      "sha256": "8635bdcd77ab873c953d0e2175abfd6fa690631d32a6641e4d7e866314b76ecb"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n2400/implementation_comparison_rows.csv",
+      "bytes": 950,
+      "sha256": "ced84d0798419ca58c2df5d40a235e25d1af81780a54ea457991b9d8d1fe997c"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n2400/implementation_comparison_summary.csv",
+      "bytes": 524,
+      "sha256": "1958a3ebbc8cc412656cae7f2fcd2e64eaa1e6c73ad3024f2e1623148e7c363b"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n300/benchmark_metadata.json",
+      "bytes": 4813,
+      "sha256": "f227b8c6a26f5c481182a943511c1ddb6cb49f2c5c631b5ae25e4d30c9cc0382"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n300/benchmark_rows.csv",
+      "bytes": 13004,
+      "sha256": "6bd1498ab727dac57148da7c101ea2df6ad0b989611a59ae8c31fd65e2b2de01"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n300/benchmark_summary.csv",
+      "bytes": 1860,
+      "sha256": "de78eb265a894a68096c5bb88841b6079a9e530531bde699be560f9b97f7704a"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n300/implementation_comparison_rows.csv",
+      "bytes": 962,
+      "sha256": "dd6f3fbec138e8dcfd62a27319f047731eb0b1c9cf64dcd73ebb09215ad83435"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n300/implementation_comparison_summary.csv",
+      "bytes": 525,
+      "sha256": "236d7b145b8e64a499dd6b33e6c13d3b4177efc9393f7d0011903209d63c7c2e"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n600/benchmark_metadata.json",
+      "bytes": 4812,
+      "sha256": "96732464d1bc1e4e5e2c28758bd4d77a23cd6479149d0a7792e10fac3675a989"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n600/benchmark_rows.csv",
+      "bytes": 12986,
+      "sha256": "0e3ee359db7feb0e43ba6fef6e2e82879fbc4176ab795b105f8f8c95322e324d"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n600/benchmark_summary.csv",
+      "bytes": 1847,
+      "sha256": "585df0f8f2b9de9b252b447f6aa87c3ddb58fd28fafee462303abe1c6ce8f2be"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n600/implementation_comparison_rows.csv",
+      "bytes": 954,
+      "sha256": "5bb56528430e9eacd619e427a8eaa0581f1adee66dedd9d0a9a4a82dad632795"
+    },
+    {
+      "path": "implementation_comparison_v2/dense_overlap_size/n600/implementation_comparison_summary.csv",
+      "bytes": 526,
+      "sha256": "7b4a85c3a1e69f09cfa51dbc893cc6d831fbacb49c2f2c81c0b5021f37ad120b"
+    },
+    {
+      "path": "implementation_comparison_v2/implementation_comparison_rows.csv",
+      "bytes": 15312,
+      "sha256": "42d39d60df625e47a67700b38be89ad2bf836514a160a4f0dcb5635b0d505a14"
+    },
+    {
+      "path": "implementation_comparison_v2/implementation_comparison_summary.csv",
+      "bytes": 4983,
+      "sha256": "5f7b47e3d0418a61369d51e83644d9a1547e0db3c73041c901024324732a556d"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n1300/benchmark_metadata.json",
+      "bytes": 6649,
+      "sha256": "30a29a49a0e2a3c99439cbb3bba7caa36dbbfcc30139c58884a0814852b8c66d"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n1300/benchmark_rows.csv",
+      "bytes": 30179,
+      "sha256": "e7b1fd6c7ce41657bd2118b93c6ac006c0c5d897503b8fef9ebbdd9813a0af87"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n1300/benchmark_summary.csv",
+      "bytes": 3165,
+      "sha256": "e7b9d41b87ffd38fadc9b5f48f47a4e408d7a56b6f119cc5b3642c3d13592f84"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n1300/implementation_comparison_rows.csv",
+      "bytes": 2156,
+      "sha256": "63df2475080fe3b0f503b28b68039271a0d1b122de5112942af61e9898bfd2cf"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n1300/implementation_comparison_summary.csv",
+      "bytes": 859,
+      "sha256": "7cf4c4860063b997f496bd3331fc576a00f085af8735dca8819775ffdcace5be"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n2000/benchmark_metadata.json",
+      "bytes": 6649,
+      "sha256": "67c7dee4f2ba363f5ee4711d14ca39629b9b376a314d9650c55be232ec8973e8"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n2000/benchmark_rows.csv",
+      "bytes": 29891,
+      "sha256": "9010024e5d31e648ff2d61978b4c2b631d0600f60a9e1a95acba0c9db38be015"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n2000/benchmark_summary.csv",
+      "bytes": 3194,
+      "sha256": "459f835dfb26f74c2311b7166cfe47e4ee83bccd746324108e34030ae20fa9e0"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n2000/implementation_comparison_rows.csv",
+      "bytes": 2075,
+      "sha256": "f77b9d8595388afec037003f371bb1f3d71c187ad1fcf7773524827c716e65ee"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n2000/implementation_comparison_summary.csv",
+      "bytes": 856,
+      "sha256": "78459bd031dc75b549b441d4e0960f992a667bd9781080c4c195f8b7e008d6b7"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n3000/benchmark_metadata.json",
+      "bytes": 6648,
+      "sha256": "a785aeb913fa8ab5efc0e596e3cc790499fc3c8718e8ad4352cb37320f9449d6"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n3000/benchmark_rows.csv",
+      "bytes": 29738,
+      "sha256": "375b20467aa1a678c89581bed48caaec6e5c0776565476c49400f9f8c9a82870"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n3000/benchmark_summary.csv",
+      "bytes": 3117,
+      "sha256": "24305c9fa42bb0bf9e759e6339738bb662e2f4d37be7e35226fe868b8e127ea5"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n3000/implementation_comparison_rows.csv",
+      "bytes": 2032,
+      "sha256": "29a49df15a8c9f6bf685d1f974ec178275c3fbd06342cecff2fa2839d16e9b54"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n3000/implementation_comparison_summary.csv",
+      "bytes": 841,
+      "sha256": "46b30f0f2f07e25c5c3c8f19cca3578d4d267104ba2666e6f91f512958e16da2"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n5000/benchmark_metadata.json",
+      "bytes": 6648,
+      "sha256": "bf10e7fb77c1ff522e5ce58eaf2ace38874dec3c1ab03edf1bc128240b8e1020"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n5000/benchmark_rows.csv",
+      "bytes": 29857,
+      "sha256": "61de79d94a8cd6ea603995fdc43c4a4031a86ecc7b89253f0db616241199f7e2"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n5000/benchmark_summary.csv",
+      "bytes": 3092,
+      "sha256": "cef4169be171d547d7ccf89549265955ed26b100964560874903f3723b682a2c"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n5000/implementation_comparison_rows.csv",
+      "bytes": 2068,
+      "sha256": "ca5a8742ad96d3b91465355b07f9fa3dce8547e0fbc2a90cf280e410570071ba"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n5000/implementation_comparison_summary.csv",
+      "bytes": 856,
+      "sha256": "2c3bb5cb16c6fc5e32a37d208de8f2000aec5562cb9000bf55658d97d772403e"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n800/benchmark_metadata.json",
+      "bytes": 6641,
+      "sha256": "4046e35038d6d449d333a6d4618413f0c1138eeb1136079825da010d4c24f716"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n800/benchmark_rows.csv",
+      "bytes": 29803,
+      "sha256": "6dade27472b20178a8956c5971c4d916a239c427c948911dbbcc39a066fc1ab0"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n800/benchmark_summary.csv",
+      "bytes": 3056,
+      "sha256": "0fda4dcb7f3f6ceb0067457cc60072a293e4227121ebb1edd8ab5412135ddf30"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n800/implementation_comparison_rows.csv",
+      "bytes": 2076,
+      "sha256": "63d6304dd0fb0caaa6f2b27c570c3b995159eeb9f9db8f7b5ce1ff9e00406284"
+    },
+    {
+      "path": "implementation_comparison_v2/partial_beam_implementation_rare_anchor/n800/implementation_comparison_summary.csv",
+      "bytes": 857,
+      "sha256": "888a267bf54d4faa804c963b1103f795a37b8926f4ec66f73a987c160cff93a7"
+    },
+    {
+      "path": "implementation_comparison_v2/sweep_metadata.json",
+      "bytes": 73943,
+      "sha256": "0e893894fb0e7351b18d1b205de2646f5d3a959ae024b9d03a45991210378ab8"
+    },
+    {
+      "path": "implementation_comparison_v2/sweep_rows.csv",
+      "bytes": 194523,
+      "sha256": "fb740692b89a6419fc4c7a7d82b964dc937b69dc6318f5e855a79a7c865dea99"
+    },
+    {
+      "path": "implementation_comparison_v2/sweep_summary.csv",
+      "bytes": 18356,
+      "sha256": "ca5c0d172f50b7071922bcb5726b32bcaad408eccf76921cf83a6518e472e512"
+    }
+  ]
+}

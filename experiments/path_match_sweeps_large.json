@@ -79,7 +79,8 @@
         "exact_dense",
         "sparse_chain",
         "beam_local",
-        "beam_partial_score"
+        "beam_partial_score",
+        "fast_beam_partial"
       ],
       "n_instances": 4,
       "points": [
@@ -97,7 +98,8 @@
       "algorithms": [
         "fast_dense",
         "beam_local",
-        "beam_partial_score"
+        "beam_partial_score",
+        "fast_beam_partial"
       ],
       "n_instances": 4,
       "points": [
@@ -105,6 +107,24 @@
         {"label": "n1300", "x_value": 1300, "overrides": {"n_g": 1300, "n_h": 1300, "depth_g": 160, "depth_h": 160}},
         {"label": "n2000", "x_value": 2000, "overrides": {"n_g": 2000, "n_h": 2000, "depth_g": 200, "depth_h": 200}},
         {"label": "n3000", "x_value": 3000, "overrides": {"n_g": 3000, "n_h": 3000, "depth_g": 250, "depth_h": 250}}
+      ]
+    },
+    {
+      "name": "partial_beam_implementation_rare_anchor",
+      "kind": "size",
+      "regime": "rare_anchor_oracle",
+      "x_name": "nodes_per_tree",
+      "algorithms": [
+        "beam_partial_score",
+        "fast_beam_partial"
+      ],
+      "n_instances": 4,
+      "points": [
+        {"label": "n800", "x_value": 800, "overrides": {"n_g": 800, "n_h": 800, "depth_g": 130, "depth_h": 130}},
+        {"label": "n1300", "x_value": 1300, "overrides": {"n_g": 1300, "n_h": 1300, "depth_g": 160, "depth_h": 160}},
+        {"label": "n2000", "x_value": 2000, "overrides": {"n_g": 2000, "n_h": 2000, "depth_g": 200, "depth_h": 200}},
+        {"label": "n3000", "x_value": 3000, "overrides": {"n_g": 3000, "n_h": 3000, "depth_g": 250, "depth_h": 250}},
+        {"label": "n5000", "x_value": 5000, "overrides": {"n_g": 5000, "n_h": 5000, "depth_g": 300, "depth_h": 300}}
       ]
     },
     {

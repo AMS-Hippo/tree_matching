@@ -9,6 +9,13 @@ configuration is written explicitly into the output.
 ## Two different kinds of names
 
 A **named algorithm configuration** is a complete matcher preset. For example,
+`fast_beam_partial` uses the same default beam and expansion budgets as
+`beam_partial_score`, but integerizes labels and prepares token-posting/DFS
+indices once per tree.  Equality mode reproduces the generic score-only
+candidate order.  Overlap mode uses shared-token postings and is therefore a
+different finite-budget expansion rule, although the exhaustive limit remains
+exact.
+
 `beam_partial_score` means a deterministic partial-matching beam with
 `beam_width=200`, expansion width 64, no random exploration, and all current
 heuristic bonuses set to zero. The name prevents a result labelled merely
@@ -57,6 +64,7 @@ The registry is returned by
 | `sparse_closure` | Previous selected-cell skip-closure dynamic program, using exhaustive blocking candidates. |
 | `sparse_chain` | Exact maximum-chain/product-poset solver over exhaustive positive blocking candidates. |
 | `fast_sparse` | Specialized sparse equality or overlap matcher. |
+| `fast_beam_partial` | Encoded score-only partial-matching beam for equality/overlap scores, with reusable posting indices. |
 | `beam_local` | Algorithm 6 local-transition beam, all children, score ranking. |
 | `beam_local_capped` | Algorithm 6 with a deterministic child cap of 16. |
 | `beam_partial_score` | Deterministic score-only Algorithm 7 state space, beam 200 and expansion budget 64. |

@@ -1,0 +1,2 @@
+regime,family,score_mode,generic_algorithm,encoded_algorithm,intended_pair_count,paired_complete_count,complete_coverage,scores_checked,all_observed_scores_agree,score_mismatch_count,max_abs_score_difference,median_warm_speedup,q25_warm_speedup,q75_warm_speedup,median_setup_speedup,median_cold_setup_speedup,comparison_note
+dense_overlap_size__n1000,exact_dp,overlap,exact_dense,fast_dense,3,3,True,3,True,0,0.0,57.27106663171232,56.19496178449049,58.064205738683356,45.76177428227043,9.061908555616238,same exact objective

@@ -1,0 +1,125 @@
+{
+  "algorithm_order_seed": 20260928,
+  "algorithms": [
+    "exact_dense",
+    "fast_dense",
+    "sparse_closure",
+    "sparse_chain",
+    "fast_sparse",
+    "beam_local",
+    "beam_local_capped",
+    "beam_partial_score",
+    "fast_beam_partial"
+  ],
+  "diagnostic_pairs": 5,
+  "exact_score_abs_tol": 1e-05,
+  "exact_score_rel_tol": 1e-06,
+  "execution_mode": "isolated",
+  "max_total_fast_dense_cells": 500000000,
+  "max_total_generic_dense_cells": 12000000,
+  "max_total_sparse_posting_hits": 100000000,
+  "quality_floor": 0.99,
+  "regimes": [
+    {
+      "alphabet_size": 18,
+      "comparison": "tree_path",
+      "expected_algorithm": "fast_dense",
+      "n_g": 500,
+      "n_h": 32,
+      "n_queries": 80,
+      "n_templates": 24,
+      "name": "equality_tree_to_path_common_labels",
+      "notes": "Common scalar labels with short path templates; specialized dense matching should have very low warm per-pair overhead. Large preset: a larger reusable query/template workload.",
+      "p_obs_g": 0.85,
+      "p_obs_h": 1.0,
+      "planted_length": 10,
+      "planted_path_selection": "random_leaf",
+      "planted_token_policy": "background",
+      "score_mode": "equality",
+      "seed": 20260928,
+      "shape_g": "medium",
+      "shape_h": "path",
+      "symbol_distribution": "zipf",
+      "symbols_per_node": 1,
+      "weight_mode": "uniform",
+      "zipf_exponent": 1.15
+    },
+    {
+      "alphabet_size": 12000,
+      "comparison": "tree_tree",
+      "expected_algorithm": "fast_sparse",
+      "n_g": 6000,
+      "n_h": 3000,
+      "n_queries": 10,
+      "n_templates": 8,
+      "name": "sparse_overlap_tree_template_bank",
+      "notes": "Large tree-to-tree score table with very sparse token overlap; reusable integerized postings should beat dense matching. Large preset: a larger reusable query/template workload.",
+      "p_obs_g": 0.85,
+      "p_obs_h": 0.85,
+      "planted_length": 12,
+      "planted_path_selection": "random_leaf",
+      "planted_token_policy": "reserved",
+      "reserved_token_weight": 5.0,
+      "score_mode": "overlap",
+      "seed": 20261937,
+      "shape_g": "medium",
+      "shape_h": "medium",
+      "symbol_distribution": "uniform",
+      "symbols_per_node": {
+        "kind": "categorical",
+        "probs": [
+          0.5,
+          0.4,
+          0.1
+        ],
+        "values": [
+          1,
+          2,
+          3
+        ]
+      },
+      "weight_mode": "inverse_sqrt"
+    },
+    {
+      "alphabet_size": 700,
+      "comparison": "tree_path",
+      "expected_algorithm": "sparse_chain",
+      "n_g": 500,
+      "n_h": 32,
+      "n_queries": 40,
+      "n_templates": 16,
+      "name": "generic_jaccard_tree_to_path",
+      "notes": "Generic soft score with exact token blocking; sized to retain a generic dense oracle while giving sparse-chain matching repeated work. Large preset: a larger reusable query/template workload.",
+      "p_obs_g": 0.85,
+      "p_obs_h": 1.0,
+      "planted_length": 11,
+      "planted_path_selection": "random_leaf",
+      "planted_token_policy": "tail",
+      "score_mode": "jaccard",
+      "seed": 20262946,
+      "shape_g": "narrow",
+      "shape_h": "path",
+      "symbol_distribution": "uniform",
+      "symbols_per_node": {
+        "kind": "categorical",
+        "probs": [
+          0.3,
+          0.5,
+          0.2
+        ],
+        "values": [
+          1,
+          2,
+          3
+        ]
+      },
+      "weight_mode": "uniform"
+    }
+  ],
+  "repeats": 5,
+  "suite_name": "path_match_throughput_large_fast_beam_v2",
+  "thread_count": 1,
+  "timeout_seconds": 1800,
+  "validation_pairs": 5,
+  "warmup_pairs": 2
+}

@@ -132,6 +132,7 @@ def test_named_algorithm_presets_pin_score_only_beam_parameters() -> None:
         "sparse_closure",
         "sparse_chain",
         "fast_sparse",
+        "fast_beam_partial",
         "beam_local",
         "beam_local_capped",
         "beam_partial_score",
@@ -146,6 +147,14 @@ def test_named_algorithm_presets_pin_score_only_beam_parameters() -> None:
     assert score_only["beam_priority_future_weight"] == 0.0
     assert score_only["beam_lookahead"] is False
     assert score_only["candidate_select_mode"] == "first"
+
+    fast_partial = specs["fast_beam_partial"]
+    assert fast_partial.family == "fast_beam"
+    assert fast_partial.compatible_score_modes == ("equality", "overlap")
+    assert fast_partial.kwargs["beam_width"] == 200
+    assert fast_partial.kwargs["expansion_width"] == 64
+    assert fast_partial.kwargs["max_nodes_per_token_side"] == 8
+    assert fast_partial.kwargs["max_token_types_per_expansion"] == 2048
 
 
 def test_algorithm_overrides_can_be_given_unique_aliases() -> None:
@@ -174,6 +183,7 @@ def test_small_benchmark_run_writes_outputs_and_exact_methods_agree(tmp_path: Pa
             "sparse_closure",
             "sparse_chain",
             "fast_sparse",
+            "fast_beam_partial",
             "beam_local",
             "beam_partial_score",
         ],

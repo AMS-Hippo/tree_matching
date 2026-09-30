@@ -40,6 +40,12 @@ from .fast_match import (
     EncodedTreeEquality,
     EncodedTreeOverlap,
 )
+from .fast_beam_match import (
+    FastBeamPreparedTree,
+    FastBeamTreePathMatcher,
+    prepare_fast_beam_encoded,
+    align_trees_fast_partial_beam_prepared,
+)
 from .fast_sparse_match import (
     FastSparsePreparedTree,
     FastSparseTreePathMatcher,
@@ -81,6 +87,10 @@ __all__ = [
     "FastTreePathMatcher",
     "EncodedTreeEquality",
     "EncodedTreeOverlap",
+    "FastBeamPreparedTree",
+    "FastBeamTreePathMatcher",
+    "prepare_fast_beam_encoded",
+    "align_trees_fast_partial_beam_prepared",
     "FastSparsePreparedTree",
     "FastSparseTreePathMatcher",
     "prepare_fast_sparse_encoded",

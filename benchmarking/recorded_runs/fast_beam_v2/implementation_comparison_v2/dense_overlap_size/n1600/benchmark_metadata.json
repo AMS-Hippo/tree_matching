@@ -1,0 +1,162 @@
+{
+  "algorithm_order_seed": 20260928,
+  "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+  "algorithms": [
+    {
+      "compatible_score_modes": [
+        "equality",
+        "overlap",
+        "jaccard"
+      ],
+      "description": "Generic O(nm) exact dynamic program.",
+      "exact": true,
+      "family": "generic",
+      "kwargs": {
+        "method": "exact"
+      },
+      "name": "exact_dense"
+    },
+    {
+      "compatible_score_modes": [
+        "equality",
+        "overlap"
+      ],
+      "description": "Specialized integerized/Numba exact matcher.",
+      "exact": true,
+      "family": "fast_dense",
+      "kwargs": {},
+      "name": "fast_dense"
+    }
+  ],
+  "config": {
+    "algorithm_order_seed": 20260928,
+    "algorithms": [
+      "exact_dense",
+      "fast_dense"
+    ],
+    "exact_score_abs_tol": 1e-05,
+    "exact_score_rel_tol": 1e-06,
+    "execution_mode": "isolated",
+    "max_dense_cells": 30000000,
+    "max_sparse_posting_hits": 50000000,
+    "quality_floor": 0.99,
+    "regimes": [
+      {
+        "alphabet_size": 8,
+        "comparison": "tree_tree",
+        "expected_algorithm": "fast_dense",
+        "n_g": 1600,
+        "n_h": 1600,
+        "n_instances": 3,
+        "name": "dense_overlap_size__n1600",
+        "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+        "planted_length": 12,
+        "score_mode": "overlap",
+        "seed": 1102,
+        "shape_g": "medium",
+        "shape_h": "medium",
+        "symbol_distribution": "uniform",
+        "symbols_per_node": {
+          "kind": "categorical",
+          "probs": [
+            0.5,
+            0.35,
+            0.15
+          ],
+          "values": [
+            3,
+            4,
+            5
+          ]
+        },
+        "weight_mode": "uniform"
+      }
+    ],
+    "repeats": 3,
+    "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n1600",
+    "thread_count": 1,
+    "timeout_seconds": 1200,
+    "warmup": 1
+  },
+  "config_hash": "pathmatch_53c8cd53d04a",
+  "environment": {
+    "cpu_count": 24,
+    "machine": "x86_64",
+    "numba_version": "0.67.0",
+    "numpy_version": "2.5.3",
+    "pandas_version": "3.0.6",
+    "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+    "thread_environment": {
+      "MKL_NUM_THREADS": null,
+      "NUMBA_NUM_THREADS": null,
+      "OMP_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
+    }
+  },
+  "exact_score_abs_tol": 1e-05,
+  "exact_score_rel_tol": 1e-06,
+  "execution_mode": "isolated",
+  "generation_seconds": 0.21179547099745832,
+  "max_dense_cells": 30000000,
+  "max_sparse_posting_hits": 50000000,
+  "quality_floor": 0.99,
+  "regimes": [
+    {
+      "alphabet_size": 8,
+      "comparison": "tree_tree",
+      "depth_g": null,
+      "depth_h": null,
+      "expected_algorithm": "fast_dense",
+      "max_token_weight": 8.0,
+      "n_g": 1600,
+      "n_h": 1600,
+      "n_instances": 3,
+      "name": "dense_overlap_size__n1600",
+      "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration.",
+      "p_obs_g": 0.9,
+      "p_obs_h": 0.9,
+      "planted_distinct_tokens": null,
+      "planted_length": 12,
+      "planted_path_selection": "random_leaf",
+      "planted_position_mode": "even",
+      "planted_tail_fraction": 0.2,
+      "planted_token_policy": "background",
+      "reserved_token_weight": 4.0,
+      "score_mode": "overlap",
+      "seed": 1102,
+      "shape_g": "medium",
+      "shape_h": "medium",
+      "symbol_distribution": "uniform",
+      "symbols_per_node": {
+        "kind": "categorical",
+        "probs": [
+          0.5,
+          0.35,
+          0.15
+        ],
+        "values": [
+          3,
+          4,
+          5
+        ]
+      },
+      "weight_mode": "uniform",
+      "zipf_exponent": 1.3
+    }
+  ],
+  "repeats": 3,
+  "suite_name": "generic_encoded_implementation_comparison_v2__dense_overlap_size__n1600",
+  "thread_count": 1,
+  "thread_settings_enforced": true,
+  "timeout_seconds": 1200.0,
+  "timing_semantics": {
+    "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+    "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+    "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+    "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+    "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+  },
+  "warmup": 1
+}

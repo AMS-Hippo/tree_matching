@@ -36,6 +36,8 @@ import traceback
 import numpy as np
 import pandas as pd
 
+from .implementation_comparison import write_implementation_comparisons
+
 from path_matcher import SparseCandidateConfig
 from path_matcher.tree_data import TreeData
 
@@ -291,6 +293,32 @@ def _prepare_algorithm(corpus: ThroughputCorpus, spec: AlgorithmSpec) -> _Prepar
             template_preparation_seconds=template_seconds,
             matcher_construction_seconds=construction_seconds,
             preparation_kind="shared_encoder_plus_sparse_indices",
+        )
+
+    if spec.family == "fast_beam":
+        fit_start = perf_counter()
+        matcher.fit_encoder([*corpus.queries, *corpus.templates])
+        encoder_fit_seconds = perf_counter() - fit_start
+
+        q_start = perf_counter()
+        prepared_queries = [matcher.prepare_tree(tree) for tree in corpus.queries]
+        query_seconds = perf_counter() - q_start
+        t_start = perf_counter()
+        prepared_templates = [matcher.prepare_tree(tree) for tree in corpus.templates]
+        template_seconds = perf_counter() - t_start
+
+        return _PreparedAlgorithm(
+            spec=spec,
+            matcher=matcher,
+            queries=prepared_queries,
+            templates=prepared_templates,
+            predict_pair=lambda i, j: matcher.predict_prepared(prepared_queries[i], prepared_templates[j]),
+            predict_direct=lambda i, j: matcher.predict(corpus.queries[i], corpus.templates[j]),
+            encoder_fit_seconds=encoder_fit_seconds,
+            query_preparation_seconds=query_seconds,
+            template_preparation_seconds=template_seconds,
+            matcher_construction_seconds=construction_seconds,
+            preparation_kind="shared_encoder_plus_fast_beam_indices",
         )
 
     if spec.family == "generic_sparse":
@@ -1189,6 +1217,11 @@ def run_throughput_config(
             encoding="utf-8",
         )
 
+        write_implementation_comparisons(
+            rows_df, out_dir, kind="throughput", matrices=matrices,
+            abs_tol=float(config.get("exact_score_abs_tol", 1e-5)),
+            rel_tol=float(config.get("exact_score_rel_tol", 1e-6)),
+        )
     return rows_df, summary_df, metadata
 
 

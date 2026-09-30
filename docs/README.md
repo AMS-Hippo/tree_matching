@@ -28,6 +28,12 @@ Sparse exact matching is available in two forms:
   `predict_prepared(...)`. Unseen labels are dropped with an explicit warning,
   and prepared sparse trees cannot be mixed across incompatible encoder fits.
 
+`FastBeamTreePathMatcher(mode="equality" | "overlap")` is the prepared,
+encoded score-only implementation of the partial-matching beam.  It reuses one
+corpus-wide encoder and per-tree token-posting indices.  Equality mode matches
+the generic `beam_partial_score` candidate semantics; overlap mode uses a
+direct shared-token posting expansion.  See [`FAST_BEAM.md`](FAST_BEAM.md).
+
 The older `TreePathMatcher(method="sparse")` remains available as the sparse-cell
 skip-closure DP so that the two implementations can be benchmarked separately.
 If preprocessed sparse trees are scored later with a different bucketable

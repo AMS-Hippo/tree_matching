@@ -178,7 +178,10 @@ The sweep configuration contains five size sweeps and four controlled beam
 parameter sweeps. It writes `sweep_rows.csv`, `sweep_summary.csv`, and the
 ordinary benchmark artifacts for every individual point. The current sweep
 file intentionally leaves lookahead disabled; its purpose is to calibrate the
-base beams before adding further heuristics.
+base beams before adding further heuristics.  It now also includes a direct
+`beam_partial_score` versus `fast_beam_partial` rare-anchor size sweep, so the
+implementation speedup can be separated from changes in beam width or search
+quality.
 
 ## Talk-ready figures
 
@@ -197,3 +200,13 @@ The script uses shared legends instead of overlapping point labels and creates
 speed-accuracy panels, generic-versus-encoded exact comparisons, size-scaling
 curves, and beam-parameter tradeoff figures. See
 `BENCHMARK_RUN_AND_FIGURE_GUIDE.pdf` for the short operational guide.
+
+
+## Old and encoded beam comparisons; preserving run data
+
+See [FAST_BEAM_BENCHMARKS.md](FAST_BEAM_BENCHMARKS.md) for the updated notebook
+workflow, the ready-made `path_match_implementation_comparison.json` sweep,
+paired score/speedup CSVs, and the new partial-beam comparison figures.
+`results/` remains ignored by Git. Use `archive_benchmark_data.py` to copy selected
+numerical runs into `recorded_runs/`, then explicitly stage and commit that snapshot.
+No matching algorithm or lookahead rule changed in this benchmark update.

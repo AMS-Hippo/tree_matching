@@ -24,6 +24,8 @@ import warnings
 
 import pandas as pd
 
+from .implementation_comparison import write_implementation_comparisons
+
 from .path_match_benchmark import run_benchmark_config
 from .shared import ensure_dir, load_config
 
@@ -309,6 +311,7 @@ def run_sweep_config(
         json.dumps(metadata, indent=2, sort_keys=True, default=str),
         encoding="utf-8",
     )
+    write_implementation_comparisons(combined_rows, destination)
     return combined_rows, combined_summary, metadata
 
 

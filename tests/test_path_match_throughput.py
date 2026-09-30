@@ -83,6 +83,7 @@ def test_small_throughput_run_validates_prepared_apis_and_exact_matrices(tmp_pat
             "fast_dense",
             "sparse_chain",
             "fast_sparse",
+            "fast_beam_partial",
             "beam_local",
             "beam_partial_score",
         ],
@@ -109,6 +110,7 @@ def test_small_throughput_run_validates_prepared_apis_and_exact_matrices(tmp_pat
         "fast_dense",
         "sparse_chain",
         "fast_sparse",
+        "fast_beam_partial",
     }
     assert prepared["prepared_validation_passed"].all()
     assert np.allclose(

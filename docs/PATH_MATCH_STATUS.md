@@ -18,6 +18,7 @@ configuration remain the authoritative records.
 | Original sparse skip-closure DP | Preserved as `sparse_closure` for comparison. |
 | Direct sparse product-poset DP | Implemented as `sparse_chain`; exact for a complete positive candidate set. |
 | Specialized sparse equality/overlap | Implemented as `FastSparseTreePathMatcher`, including reusable encoder and tree preparation. |
+| Specialized partial-matching beam | Implemented as `FastBeamTreePathMatcher` for equality/overlap scores. Equality mode reproduces the generic score-only candidate semantics; overlap uses direct shared-token postings. |
 | API safeguards | Unseen-label warnings, prepared-encoder fingerprints, and changed-blocking-score warnings implemented. |
 | Diagnostics | Common timing, candidate, DP, frontier, and sparse-chain counters implemented. |
 | Synthetic benchmark generator | Narrow/medium/wide/path shapes, tree--tree/tree--path comparisons, uniform/Zipf labels, variable symbols per node, and randomized sibling order implemented. |
@@ -96,9 +97,10 @@ large.  This is useful baseline evidence before heuristic tuning.
 
 ## Work deliberately not done yet
 
-1. **Fast specialized beam implementation.**  Both beam state spaces currently
-   use the generic Python implementation.  A separate integerized fast path
-   remains planned, with the partial-matching beam the higher priority.
+1. **Finish specialized beam coverage.**  The encoded partial-matching beam is
+   now implemented for equality and overlap scores.  The local-transition beam
+   still uses the generic Python implementation; it is the next compilation
+   target if profiling on real tree-to-path workloads justifies it.
 2. **Lookahead redesign.**  The existing optional lookahead implementation was
    not changed.  Its representation, candidate-generation role, ranking role,
    preprocessing amortization, and cost budget should be agreed before editing
@@ -119,12 +121,12 @@ large.  This is useful baseline evidence before heuristic tuning.
 
 ## Near-term order
 
-1. Review the two standard result sets and decide whether the current regimes
-   are scientifically representative.
-2. Make the small notebook-interface pass needed for user-chosen large runs
-   (tree-size overrides and non-overwriting run labels), then archive the
-   current baseline on GitHub.
-3. Run one-factor beam-width and candidate-budget sweeps for the score-only
-   baselines.
+1. Run the checked-in generic-versus-encoded partial-beam sweep and confirm the
+   warm-speedup/accuracy relationship across sizes and a second seed set.
+2. Profile the local-transition beam on the narrow tree-to-path workload and
+   implement a compiled local kernel only if Python expansion remains a
+   meaningful bottleneck.
+3. Add simple candidate-ordering and diversity heuristics one at a time, with
+   lookahead still deferred until the cheaper baselines are calibrated.
 4. Design the thresholded sparse and anchor-chain refinements.
 5. Add real grouped ACME workloads when the data pipeline is available.

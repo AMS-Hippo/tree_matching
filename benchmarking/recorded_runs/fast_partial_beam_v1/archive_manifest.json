@@ -1,0 +1,101 @@
+{
+  "archived_at_utc": "2026-09-30T21:15:57.122545+00:00",
+  "repository_head_when_archived": "e8280f46dec3f6bd79968d74a8424e81f9fbeb80",
+  "provenance_note": "This HEAD is the collection-time revision, not necessarily the revision that ran older data. Original run metadata/configs are preserved unchanged.",
+  "sources": [
+    "/home/asmi28/python_code/tree_matching/benchmarking/results/fast_partial_beam_v1"
+  ],
+  "excluded": "PNG/PDF figures, notebooks, interpreter/Numba caches, and other non-data files",
+  "files": [
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n1300/benchmark_metadata.json",
+      "bytes": 6012,
+      "sha256": "47e04ed5fbe05a84ec4b4ef27376691bac65f65276d5f9abb2869e4ed453c62b"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n1300/benchmark_rows.csv",
+      "bytes": 22158,
+      "sha256": "def95e8d6aed1dddacb3870cbc300b198d5d74c3a5858bf554b8f5a030be1f2b"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n1300/benchmark_summary.csv",
+      "bytes": 1708,
+      "sha256": "4d53bae534f8231af12fad0b8c86af33004258c126e2daa0c1b77473aced0165"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n2000/benchmark_metadata.json",
+      "bytes": 6012,
+      "sha256": "1c9be5a0f2e4862b501f9ea5e74082ea7036ea3ef921e951e4fb441f95b7b390"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n2000/benchmark_rows.csv",
+      "bytes": 21837,
+      "sha256": "3db3903ff1fc70199305e141648befec29fec82fc31a695a40104427b3ae762e"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n2000/benchmark_summary.csv",
+      "bytes": 1706,
+      "sha256": "d772dcfd88c7cbeefc296ebac21ced17b2618833640b64fe44b5cb9b3611954d"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n3000/benchmark_metadata.json",
+      "bytes": 6011,
+      "sha256": "a5697b806734b4755d3f0311004213972fa877148b4ac75d72536f06d77c7375"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n3000/benchmark_rows.csv",
+      "bytes": 21713,
+      "sha256": "6080570a24c18e0e4db4035f998a56a7b8c22e65ab97e198b1f167bfb266eea9"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n3000/benchmark_summary.csv",
+      "bytes": 1700,
+      "sha256": "6cf991f8f509406ebfd44517b426d241b9479710350cbe85d4e1fa0f365090ad"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n5000/benchmark_metadata.json",
+      "bytes": 6010,
+      "sha256": "da4c1aa1edfd441a2019b91bd626e97ea6fae8777b30d63e5a15424a184c7cf8"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n5000/benchmark_rows.csv",
+      "bytes": 21846,
+      "sha256": "1c94ecf21473505406afea8d6a4ec451c48d6042b33e359f482b8a7dd302ddbc"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n5000/benchmark_summary.csv",
+      "bytes": 1702,
+      "sha256": "5cf52a95cdc3c700512cee2bc9c4cdde1aabd354ec4c3d3cf67b304eeefd80fb"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n800/benchmark_metadata.json",
+      "bytes": 6004,
+      "sha256": "e26e2ae27a4f36bf5ab5fb0de45c073078e1b35f54ba822025c1a811676718a2"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n800/benchmark_rows.csv",
+      "bytes": 21966,
+      "sha256": "570cec704375cf81b5503b4b472721d6c3d26859d711e3a4a3ad5c8f97e2bcb3"
+    },
+    {
+      "path": "fast_partial_beam_v1/partial_beam_implementation_rare_anchor/n800/benchmark_summary.csv",
+      "bytes": 1708,
+      "sha256": "7263ad8604eca2944832df25b01f89708b742255c4472572cfe85c084119e43f"
+    },
+    {
+      "path": "fast_partial_beam_v1/sweep_metadata.json",
+      "bytes": 38431,
+      "sha256": "e0e2da35ed2b52e4929789727042fcd1adb2a2e2530179e7060d44d99a4f6025"
+    },
+    {
+      "path": "fast_partial_beam_v1/sweep_rows.csv",
+      "bytes": 99477,
+      "sha256": "2a310f04300801ea17a4073f10514bfc7a221e5034794d74501e859f2d9bd748"
+    },
+    {
+      "path": "fast_partial_beam_v1/sweep_summary.csv",
+      "bytes": 5465,
+      "sha256": "43d50c8e9c11016de7d470eb3bfb73f2424082e63461b1a51d4ffe24750748ee"
+    }
+  ]
+}

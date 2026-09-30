@@ -7,7 +7,7 @@ The benchmark notebooks intentionally favor complete tables and diagnostic
 plots.  This script produces a smaller, more legible set of figures for talks:
 
 * speed-accuracy frontiers with a shared legend rather than point labels;
-* the generic versus encoded exact implementation;
+* the generic versus encoded exact and partial-beam implementations;
 * sparse exact-method comparisons;
 * size-scaling curves;
 * beam-width / candidate-budget tradeoff curves.
@@ -37,6 +37,7 @@ ALGORITHM_LABELS: Dict[str, str] = {
     "beam_local": "Local beam",
     "beam_local_capped": "Local beam (capped)",
     "beam_partial_score": "Partial-matching beam",
+    "fast_beam_partial": "Partial beam (encoded)",
     "beam_partial_heuristic": "Partial beam (heuristic)",
 }
 
@@ -64,7 +65,8 @@ ALGORITHM_COLORS: Dict[str, str] = {
     "beam_local": "#8c564b",
     "beam_local_capped": "#e377c2",
     "beam_partial_score": "#7f7f7f",
-    "beam_partial_heuristic": "#17becf",
+    "fast_beam_partial": "#17becf",
+    "beam_partial_heuristic": "#bcbd22",
 }
 
 ALGORITHM_MARKERS: Dict[str, str] = {
@@ -76,6 +78,7 @@ ALGORITHM_MARKERS: Dict[str, str] = {
     "beam_local": "X",
     "beam_local_capped": "v",
     "beam_partial_score": "*",
+    "fast_beam_partial": "H",
     "beam_partial_heuristic": "h",
 }
 
@@ -85,6 +88,8 @@ def _base_algorithm(name: str) -> str:
     if name in ALGORITHM_LABELS:
         return name
     lower = str(name).lower()
+    if lower.startswith("fast_partial_") or lower.startswith("fast_beam_partial"):
+        return "fast_beam_partial"
     if lower.startswith("partial_") or lower.startswith("beam_partial"):
         return "beam_partial_score"
     if lower.startswith("local_r") or "cap" in lower:
@@ -98,7 +103,7 @@ def _algorithm_label(name: str) -> str:
     base = _base_algorithm(name)
     if name in ALGORITHM_LABELS:
         return ALGORITHM_LABELS[name]
-    if base in {"beam_partial_score", "beam_local", "beam_local_capped"}:
+    if base in {"beam_partial_score", "fast_beam_partial", "beam_local", "beam_local_capped"}:
         return str(name).replace("_", " ")
     return ALGORITHM_LABELS.get(base, str(name).replace("_", " "))
 
@@ -318,13 +323,14 @@ def plot_throughput_frontiers(summary: pd.DataFrame, outdir: Path, manifest: Lis
 
 
 def plot_exact_generic_vs_encoded(
-    pairwise: pd.DataFrame,
+    pairwise: Optional[pd.DataFrame],
     throughput: Optional[pd.DataFrame],
     outdir: Path,
     manifest: List[Dict[str, str]],
 ) -> None:
     panels: List[Tuple[str, pd.DataFrame, str, Mapping[str, str]]] = []
-    p = pairwise[pairwise["algorithm"].isin(["exact_dense", "fast_dense"])].copy()
+    p = (pairwise[pairwise["algorithm"].isin(["exact_dense", "fast_dense"])].copy()
+         if pairwise is not None else pd.DataFrame())
     if not p.empty:
         pivot = p.pivot_table(index="regime", columns="algorithm", values="median_predict_seconds", aggfunc="first")
         if {"exact_dense", "fast_dense"}.issubset(pivot.columns):
@@ -375,6 +381,75 @@ def plot_exact_generic_vs_encoded(
         manifest,
         "Warm runtime comparison for the generic and encoded implementations of the original exact dynamic program.",
     )
+
+
+def plot_partial_generic_vs_encoded(
+    pairwise: Optional[pd.DataFrame],
+    throughput: Optional[pd.DataFrame],
+    outdir: Path,
+    manifest: List[Dict[str, str]],
+) -> None:
+    """Add the beam counterpart to the existing exact-DP comparison.
+
+    These figures use ratios of summary medians. Per-instance paired speedups
+    and score differences are saved separately by the benchmark backend.
+    """
+    for kind, frame, time_col, accuracy_col in (
+        ("pairwise", pairwise, "median_predict_seconds", "median_accuracy_percent"),
+        ("throughput", throughput, "score_matrix_seconds_median", "matrix_total_accuracy"),
+    ):
+        if frame is None or frame.empty:
+            continue
+        selected = frame[frame["algorithm"].isin(["beam_partial_score", "fast_beam_partial"])].copy()
+        if "complete_coverage" in selected:
+            selected = selected[selected["complete_coverage"] == True]
+        elif "status" in selected:
+            selected = selected[selected["status"] == "ok"]
+        if selected.empty:
+            continue
+        if selected.duplicated(["regime", "algorithm"]).any():
+            raise ValueError("The beam comparison requires one summary row per regime and algorithm")
+        rows = []
+        for regime, group in selected.groupby("regime", sort=False):
+            indexed = group.set_index("algorithm")
+            if not {"beam_partial_score", "fast_beam_partial"}.issubset(indexed.index):
+                continue
+            old, new = indexed.loc["beam_partial_score"], indexed.loc["fast_beam_partial"]
+            a, b = float(old[time_col]), float(new[time_col])
+            if not (np.isfinite(a) and np.isfinite(b) and min(a, b) > 0):
+                continue
+            scale = 100.0 if kind == "throughput" else 1.0
+            rows.append({
+                "regime": regime, "generic_warm_ms": 1000*a, "encoded_warm_ms": 1000*b,
+                "speedup_ratio_of_medians": a/b,
+                "generic_accuracy_percent": scale*float(old.get(accuracy_col, np.nan)),
+                "encoded_accuracy_percent": scale*float(new.get(accuracy_col, np.nan)),
+            })
+        if not rows:
+            continue
+        table = pd.DataFrame(rows)
+        outdir.mkdir(parents=True, exist_ok=True)
+        table.to_csv(outdir / f"partial_implementation_{kind}_plot_data.csv", index=False)
+        fig = plt.figure(figsize=(10, max(4.8, len(table)*0.65+2.2)))
+        ax = fig.add_subplot(111)
+        y = np.arange(len(table))
+        # Slightly separated rows, not jittered data: avoid coincident markers.
+        ax.plot(table["generic_warm_ms"], y+0.13, linestyle="none", marker="*", markersize=11,
+                label="Partial beam (generic)")
+        ax.plot(table["encoded_warm_ms"], y-0.13, linestyle="none", marker="H", markersize=9,
+                label="Partial beam (encoded)")
+        ax.set_yticks(y)
+        ax.set_yticklabels([_label_regime(r) for r in table["regime"]])
+        ax.invert_yaxis()
+        ax.set_xscale("log")
+        ax.set_xlabel("Warm time per pair (ms)" if kind == "pairwise" else "Warm complete-matrix time (ms)")
+        ax.set_title("Partial beam: generic versus encoded — " + kind)
+        ax.grid(True, axis="x", which="major", alpha=0.25)
+        ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.13), ncol=2, frameon=False)
+        fig.subplots_adjust(left=0.28, bottom=0.25, top=0.88)
+        fig.text(0.28, 0.025, "Compare accuracy as well as time; overlap uses different finite-budget proposals.", fontsize=9)
+        _save(fig, outdir, f"06_partial_generic_vs_encoded_{kind}", manifest,
+              "Old and fast partial beam; see implementation_comparison_rows.csv for paired score checks.")
 
 
 def _plot_size_sweep(sweep: pd.DataFrame, outdir: Path, manifest: List[Dict[str, str]]) -> None:
@@ -524,14 +599,15 @@ def main() -> None:
     throughput = _read_table(args.throughput, "throughput_summary.csv")
     sweeps = _read_table(args.sweeps, "sweep_summary.csv")
     outdir = Path(args.outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
     manifest: List[Dict[str, str]] = []
 
     if pairwise is not None:
         plot_pairwise_frontiers(pairwise, outdir, manifest)
     if throughput is not None:
         plot_throughput_frontiers(throughput, outdir, manifest)
-    if pairwise is not None:
-        plot_exact_generic_vs_encoded(pairwise, throughput, outdir, manifest)
+    plot_exact_generic_vs_encoded(pairwise, throughput, outdir, manifest)
+    plot_partial_generic_vs_encoded(pairwise, throughput, outdir, manifest)
     if sweeps is not None:
         plot_sweeps(sweeps, outdir, manifest)
 

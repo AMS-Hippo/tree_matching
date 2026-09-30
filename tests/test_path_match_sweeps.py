@@ -39,6 +39,14 @@ def test_checked_in_sweep_config_resolves_all_algorithms() -> None:
     assert len(names) == len(set(names))
     assert any(item["kind"] == "size" for item in config["sweeps"])
     assert any(item["kind"] == "algorithm" for item in config["sweeps"])
+    implementation_sweep = next(
+        item for item in config["sweeps"]
+        if item["name"] == "partial_beam_implementation_rare_anchor"
+    )
+    assert implementation_sweep["algorithms"] == [
+        "beam_partial_score",
+        "fast_beam_partial",
+    ]
     for sweep in config["sweeps"]:
         resolve_algorithm_specs(sweep["algorithms"])
         if sweep["kind"] == "size":
@@ -132,6 +140,15 @@ def test_talk_figure_script_writes_png_and_pdf(tmp_path: Path) -> None:
             "successful_instances": 2,
             "median_accuracy_percent": 100.0,
             "median_predict_seconds": 0.01,
+            "warm_speed_accuracy_frontier": True,
+        },
+        {
+            "regime": "dense_common_overlap",
+            "regime_order": 0,
+            "algorithm": "fast_beam_partial",
+            "successful_instances": 2,
+            "median_accuracy_percent": 80.0,
+            "median_predict_seconds": 0.005,
             "warm_speed_accuracy_frontier": True,
         },
     ])

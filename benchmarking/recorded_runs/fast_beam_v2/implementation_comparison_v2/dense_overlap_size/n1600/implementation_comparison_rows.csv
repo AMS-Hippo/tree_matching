@@ -1,0 +1,4 @@
+regime,instance,family,score_mode,generic_algorithm,encoded_algorithm,generic_status,encoded_status,paired_complete,generic_warm_seconds,encoded_warm_seconds,warm_speedup,setup_speedup,cold_setup_speedup,generic_score,encoded_score,max_abs_score_difference,score_mismatch_count,score_agreement,comparison_note
+dense_overlap_size__n1600,0,exact_dp,overlap,exact_dense,fast_dense,ok,ok,True,2.779878332017688,0.050548714003525674,54.994046571071955,47.38502744773987,17.830945341310066,22.0,22.0,0.0,0,True,same exact objective
+dense_overlap_size__n1600,1,exact_dp,overlap,exact_dense,fast_dense,ok,ok,True,2.884628882020479,0.051000439998460934,56.56086265348946,48.77264256065821,17.265745808170948,22.0,22.0,0.0,0,True,same exact objective
+dense_overlap_size__n1600,2,exact_dp,overlap,exact_dense,fast_dense,ok,ok,True,2.9440200999961235,0.048939138010609895,60.156762453761786,51.941299011487715,18.404016186769397,22.0,22.0,0.0,0,True,same exact objective

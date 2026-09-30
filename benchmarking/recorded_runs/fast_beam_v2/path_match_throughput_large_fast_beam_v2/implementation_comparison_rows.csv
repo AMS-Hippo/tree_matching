@@ -1,0 +1,7 @@
+regime,family,score_mode,generic_algorithm,encoded_algorithm,generic_status,encoded_status,paired_complete,generic_warm_seconds,encoded_warm_seconds,warm_speedup,setup_speedup,cold_setup_speedup,generic_score,encoded_score,max_abs_score_difference,score_mismatch_count,score_agreement,comparison_note
+equality_tree_to_path_common_labels,exact_dp,equality,exact_dense,fast_dense,skipped,ok,False,,0.12308139700326137,,,,,24338.0,,,,same exact objective
+equality_tree_to_path_common_labels,partial_beam,equality,beam_partial_score,fast_beam_partial,ok,ok,True,30.878539276018273,1.6478948710137047,18.738173058954484,17.90384412833391,16.77624752843277,16520.0,16520.0,0.0,0.0,True,observed score agreement is not beam optimality; compare identical budgets
+sparse_overlap_tree_template_bank,exact_dp,overlap,exact_dense,fast_dense,skipped,skipped,False,,,,,,,,,,,same exact objective
+sparse_overlap_tree_template_bank,partial_beam,overlap,beam_partial_score,fast_beam_partial,ok,ok,True,20.338745277986163,0.5994697700079996,33.927891439321044,21.5968955393141,19.258733833054006,173.00000000000074,2613.0,44.0,80.0,False,different finite-budget overlap proposal rules
+generic_jaccard_tree_to_path,exact_dp,jaccard,exact_dense,fast_dense,ok,skipped,False,8.207977292011492,,,,,1186.1143206357956,,,,,same exact objective
+generic_jaccard_tree_to_path,partial_beam,jaccard,beam_partial_score,fast_beam_partial,ok,skipped,False,10.273837538989028,,,,,1160.8833333333332,,,,,observed score agreement is not beam optimality; compare identical budgets

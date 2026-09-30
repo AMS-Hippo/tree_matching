@@ -1,0 +1,9 @@
+regime,expected_algorithm,oracle_valid_instances,exact_disagreement_instances,observed_fastest_warm_eligible,observed_fastest_setup_plus_warm_eligible,observed_best_warm_accuracy_harmonic,quality_floor_percent
+tiny_generic_dense,exact_dense,6,0,exact_dense,exact_dense,beam_local,99.0
+dense_common_overlap,fast_dense,5,0,fast_dense,fast_dense,fast_beam_partial,99.0
+generic_sparse_jaccard,sparse_chain,5,0,sparse_chain,sparse_chain,sparse_chain,99.0
+large_sparse_overlap,fast_sparse,4,0,fast_sparse,fast_sparse,fast_beam_partial,99.0
+narrow_tree_to_path,beam_local_capped,5,0,sparse_chain,sparse_chain,beam_local,99.0
+wide_shallow_tree_pair,beam_local_capped,5,0,exact_dense,exact_dense,beam_local_capped,99.0
+deep_rare_anchor_stress,fast_beam_partial,0,0,,,,99.0
+rare_anchor_oracle,fast_dense,5,0,fast_beam_partial,fast_beam_partial,fast_beam_partial,99.0

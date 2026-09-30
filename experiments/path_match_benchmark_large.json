@@ -19,7 +19,8 @@
     "fast_sparse",
     "beam_local",
     "beam_local_capped",
-    "beam_partial_score"
+    "beam_partial_score",
+    "fast_beam_partial"
   ],
   "regimes": [
     {
@@ -217,8 +218,8 @@
       "planted_path_selection": "random_leaf",
       "n_instances": 3,
       "seed": 1107,
-      "expected_algorithm": "beam_partial_score",
-      "notes": "Rare high-weight anchors are far apart in deep trees; dense and exhaustive sparse methods exceed the configured work limits. Large preset: more instances and a larger structural workload.",
+      "expected_algorithm": "fast_beam_partial",
+      "notes": "Rare high-weight anchors are far apart in deep trees; dense and exhaustive sparse methods exceed the configured work limits. Large preset: more instances and a larger structural workload. Encoded token-posting partial beam is the accelerated implementation of the same score-only search geometry.",
       "planted_distinct_tokens": 14
     },
     {
