@@ -58,6 +58,7 @@ def test_throughput_notebook_uses_tested_backend_and_has_no_saved_outputs() -> N
     assert "RUN_LABEL" in code
     assert "ALGORITHMS" in code
     assert "allowed_size_fields" in code
+    assert "path_match_throughput_large.json" in code
 
     for cell in payload["cells"]:
         if cell.get("cell_type") == "code":

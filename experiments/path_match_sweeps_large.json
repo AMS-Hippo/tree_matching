@@ -1,0 +1,226 @@
+{
+  "suite_name": "path_match_scaling_and_beam_sweeps_large_v1",
+  "base_config": "experiments/path_match_benchmark_full.json",
+  "execution_overrides": {
+    "execution_mode": "isolated",
+    "thread_count": 1,
+    "timeout_seconds": 1200,
+    "warmup": 1,
+    "repeats": 3,
+    "max_dense_cells": 12000000,
+    "max_sparse_posting_hits": 50000000
+  },
+  "sweeps": [
+    {
+      "name": "dense_overlap_size",
+      "kind": "size",
+      "regime": "dense_common_overlap",
+      "x_name": "nodes_per_tree",
+      "algorithms": [
+        "exact_dense",
+        "fast_dense"
+      ],
+      "n_instances": 5,
+      "points": [
+        {"label": "n300", "x_value": 300, "overrides": {"n_g": 300, "n_h": 300}},
+        {"label": "n600", "x_value": 600, "overrides": {"n_g": 600, "n_h": 600}},
+        {"label": "n1000", "x_value": 1000, "overrides": {"n_g": 1000, "n_h": 1000}},
+        {"label": "n1600", "x_value": 1600, "overrides": {"n_g": 1600, "n_h": 1600}},
+        {"label": "n2400", "x_value": 2400, "overrides": {"n_g": 2400, "n_h": 2400}}
+      ]
+    },
+    {
+      "name": "sparse_jaccard_size",
+      "kind": "size",
+      "regime": "generic_sparse_jaccard",
+      "x_name": "nodes_per_tree",
+      "algorithms": [
+        "exact_dense",
+        "sparse_closure",
+        "sparse_chain",
+        "beam_local"
+      ],
+      "n_instances": 4,
+      "points": [
+        {"label": "n400", "x_value": 400, "overrides": {"n_g": 400, "n_h": 400}},
+        {"label": "n800", "x_value": 800, "overrides": {"n_g": 800, "n_h": 800}},
+        {"label": "n1600", "x_value": 1600, "overrides": {"n_g": 1600, "n_h": 1600}},
+        {"label": "n2400", "x_value": 2400, "overrides": {"n_g": 2400, "n_h": 2400}},
+        {"label": "n3200", "x_value": 3200, "overrides": {"n_g": 3200, "n_h": 3200}}
+      ]
+    },
+    {
+      "name": "sparse_overlap_size",
+      "kind": "size",
+      "regime": "large_sparse_overlap",
+      "x_name": "nodes_per_tree",
+      "algorithms": [
+        "fast_dense",
+        "sparse_chain",
+        "fast_sparse"
+      ],
+      "n_instances": 4,
+      "execution_overrides": {
+        "max_dense_cells": 30000000
+      },
+      "points": [
+        {"label": "n2000", "x_value": 2000, "overrides": {"n_g": 2000, "n_h": 2000}},
+        {"label": "n5000", "x_value": 5000, "overrides": {"n_g": 5000, "n_h": 5000}},
+        {"label": "n10000", "x_value": 10000, "overrides": {"n_g": 10000, "n_h": 10000}},
+        {"label": "n15000", "x_value": 15000, "overrides": {"n_g": 15000, "n_h": 15000}}
+      ]
+    },
+    {
+      "name": "narrow_tree_path_size",
+      "kind": "size",
+      "regime": "narrow_tree_to_path",
+      "x_name": "query_tree_nodes",
+      "algorithms": [
+        "exact_dense",
+        "sparse_chain",
+        "beam_local",
+        "beam_partial_score"
+      ],
+      "n_instances": 4,
+      "points": [
+        {"label": "n2000", "x_value": 2000, "overrides": {"n_g": 2000, "n_h": 80, "depth_g": 100}},
+        {"label": "n5000", "x_value": 5000, "overrides": {"n_g": 5000, "n_h": 120, "depth_g": 150}},
+        {"label": "n10000", "x_value": 10000, "overrides": {"n_g": 10000, "n_h": 180, "depth_g": 250}},
+        {"label": "n20000", "x_value": 20000, "overrides": {"n_g": 20000, "n_h": 260, "depth_g": 350}}
+      ]
+    },
+    {
+      "name": "rare_anchor_size",
+      "kind": "size",
+      "regime": "rare_anchor_oracle",
+      "x_name": "nodes_per_tree",
+      "algorithms": [
+        "fast_dense",
+        "beam_local",
+        "beam_partial_score"
+      ],
+      "n_instances": 4,
+      "points": [
+        {"label": "n800", "x_value": 800, "overrides": {"n_g": 800, "n_h": 800, "depth_g": 130, "depth_h": 130}},
+        {"label": "n1300", "x_value": 1300, "overrides": {"n_g": 1300, "n_h": 1300, "depth_g": 160, "depth_h": 160}},
+        {"label": "n2000", "x_value": 2000, "overrides": {"n_g": 2000, "n_h": 2000, "depth_g": 200, "depth_h": 200}},
+        {"label": "n3000", "x_value": 3000, "overrides": {"n_g": 3000, "n_h": 3000, "depth_g": 250, "depth_h": 250}}
+      ]
+    },
+    {
+      "name": "partial_beam_width_rare_anchor",
+      "kind": "algorithm",
+      "regime": "rare_anchor_oracle",
+      "regime_overrides": {
+        "n_g": 2000,
+        "n_h": 2000,
+        "depth_g": 200,
+        "depth_h": 200
+      },
+      "n_instances": 5,
+      "parameter_name": "beam_width",
+      "algorithms": [
+        "fast_dense",
+        {"name": "beam_partial_score", "alias": "partial_B25", "kwargs": {"beam_width": 25}},
+        {"name": "beam_partial_score", "alias": "partial_B50", "kwargs": {"beam_width": 50}},
+        {"name": "beam_partial_score", "alias": "partial_B100", "kwargs": {"beam_width": 100}},
+        {"name": "beam_partial_score", "alias": "partial_B200", "kwargs": {"beam_width": 200}},
+        {"name": "beam_partial_score", "alias": "partial_B400", "kwargs": {"beam_width": 400}},
+        {"name": "beam_partial_score", "alias": "partial_B800", "kwargs": {"beam_width": 800}}
+      ],
+      "parameter_values": {
+        "partial_B25": 25,
+        "partial_B50": 50,
+        "partial_B100": 100,
+        "partial_B200": 200,
+        "partial_B400": 400,
+        "partial_B800": 800
+      }
+    },
+    {
+      "name": "partial_expansion_rare_anchor",
+      "kind": "algorithm",
+      "regime": "rare_anchor_oracle",
+      "regime_overrides": {
+        "n_g": 2000,
+        "n_h": 2000,
+        "depth_g": 200,
+        "depth_h": 200
+      },
+      "n_instances": 5,
+      "parameter_name": "expansion_width",
+      "algorithms": [
+        "fast_dense",
+        {"name": "beam_partial_score", "alias": "partial_E16", "kwargs": {"beam_expansion_width": 16}},
+        {"name": "beam_partial_score", "alias": "partial_E32", "kwargs": {"beam_expansion_width": 32}},
+        {"name": "beam_partial_score", "alias": "partial_E64", "kwargs": {"beam_expansion_width": 64}},
+        {"name": "beam_partial_score", "alias": "partial_E128", "kwargs": {"beam_expansion_width": 128}},
+        {"name": "beam_partial_score", "alias": "partial_E256", "kwargs": {"beam_expansion_width": 256}}
+      ],
+      "parameter_values": {
+        "partial_E16": 16,
+        "partial_E32": 32,
+        "partial_E64": 64,
+        "partial_E128": 128,
+        "partial_E256": 256
+      }
+    },
+    {
+      "name": "local_beam_width_narrow",
+      "kind": "algorithm",
+      "regime": "narrow_tree_to_path",
+      "regime_overrides": {
+        "n_g": 10000,
+        "n_h": 180,
+        "depth_g": 250
+      },
+      "n_instances": 5,
+      "parameter_name": "beam_width",
+      "algorithms": [
+        "sparse_chain",
+        {"name": "beam_local", "alias": "local_B25", "kwargs": {"beam_width": 25}},
+        {"name": "beam_local", "alias": "local_B50", "kwargs": {"beam_width": 50}},
+        {"name": "beam_local", "alias": "local_B100", "kwargs": {"beam_width": 100}},
+        {"name": "beam_local", "alias": "local_B200", "kwargs": {"beam_width": 200}},
+        {"name": "beam_local", "alias": "local_B400", "kwargs": {"beam_width": 400}},
+        {"name": "beam_local", "alias": "local_B800", "kwargs": {"beam_width": 800}}
+      ],
+      "parameter_values": {
+        "local_B25": 25,
+        "local_B50": 50,
+        "local_B100": 100,
+        "local_B200": 200,
+        "local_B400": 400,
+        "local_B800": 800
+      }
+    },
+    {
+      "name": "local_child_cap_wide",
+      "kind": "algorithm",
+      "regime": "wide_shallow_tree_pair",
+      "regime_overrides": {
+        "n_g": 800,
+        "n_h": 800
+      },
+      "n_instances": 5,
+      "parameter_name": "child_cap",
+      "algorithms": [
+        "exact_dense",
+        {"name": "beam_local_capped", "alias": "local_R4", "kwargs": {"beam_local_child_cap": 4}},
+        {"name": "beam_local_capped", "alias": "local_R8", "kwargs": {"beam_local_child_cap": 8}},
+        {"name": "beam_local_capped", "alias": "local_R16", "kwargs": {"beam_local_child_cap": 16}},
+        {"name": "beam_local_capped", "alias": "local_R32", "kwargs": {"beam_local_child_cap": 32}},
+        {"name": "beam_local_capped", "alias": "local_R64", "kwargs": {"beam_local_child_cap": 64}},
+        {"name": "beam_local_capped", "alias": "local_R128", "kwargs": {"beam_local_child_cap": 128}}
+      ],
+      "parameter_values": {
+        "local_R4": 4,
+        "local_R8": 8,
+        "local_R16": 16,
+        "local_R32": 32,
+        "local_R64": 64,
+        "local_R128": 128
+      }
+    }
+  ]
+}

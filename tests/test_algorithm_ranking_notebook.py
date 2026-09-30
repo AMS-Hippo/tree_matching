@@ -57,6 +57,7 @@ def test_algorithm_ranking_notebook_uses_tested_backend_and_has_no_saved_outputs
     assert "RUN_LABEL" in code
     assert "ALGORITHMS" in code
     assert "allowed_size_fields" in code
+    assert "path_match_benchmark_large.json" in code
     assert "column in work_summary.columns" in code
 
     for cell in payload["cells"]:

@@ -24,6 +24,8 @@ from .path_match_benchmark import (
     run_benchmark_config,
     summarize_benchmark_rows,
 )
+
+from .path_match_sweeps import run_sweep_config
 from .path_match_throughput import (
     ThroughputRegime,
     ThroughputCorpus,
@@ -63,4 +65,5 @@ __all__ = [
     "add_matrix_oracle_columns",
     "summarize_throughput_rows",
     "run_throughput_config",
+    "run_sweep_config",
 ]

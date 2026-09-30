@@ -19,8 +19,8 @@ used as a substitute for the optimal matching score.
 The first editable cell keeps the main controls together:
 
 ```python
-SCALE = "smoke"       # "smoke" or "standard"
-RUN_LABEL = None      # e.g. "large_v1"; avoids overwriting earlier results
+SCALE = "large"       # "smoke", "standard", or "large"
+RUN_LABEL = "large_v1"  # change for each substantive run
 REGIMES = "all"       # or one/a list of named regimes
 ALGORITHMS = "all"    # or one/a list of named configurations
 SIZE_OVERRIDES = {    # optional n/depth changes for named regimes
@@ -35,9 +35,11 @@ Only `n_g`, `n_h`, `depth_g`, and `depth_h` may be changed through
 `SIZE_OVERRIDES`.  Algorithm hyperparameters remain in the named preset
 configurations, so a result labelled by an algorithm name remains reproducible.
 
-`smoke` checks the wiring and correctness gates quickly.  It is not intended to
-support performance conclusions.  `standard` loads the larger starter matrix
-from `experiments/path_match_benchmark_full.json`.  The standard matrix now
+`smoke` checks the wiring and correctness gates quickly. It is not intended to
+support performance conclusions. `standard` loads the first scientific matrix
+from `experiments/path_match_benchmark_full.json`. `large` loads
+`experiments/path_match_benchmark_large.json`, which increases tree sizes,
+instance counts, timing repetitions, and worker limits.  The standard matrix now
 contains both a 1,300-node exact-oracle rare-anchor companion and the larger
 rare-anchor scalability stress case.
 
@@ -63,8 +65,8 @@ Its first editable cell uses the same subset, size, and run-label controls, plus
 query/template counts:
 
 ```python
-SCALE = "smoke"        # "smoke" or "standard"
-RUN_LABEL = None       # e.g. "large_v1"
+SCALE = "large"        # "smoke", "standard", or "large"
+RUN_LABEL = "large_v1"
 REGIMES = "all"        # or one/a list of named regimes
 ALGORITHMS = "all"     # or one/a list of named configurations
 SIZE_OVERRIDES = {     # optional n/depth changes for named regimes
@@ -76,9 +78,10 @@ REPEATS = None         # None keeps the preset value
 SEED = 20260928
 ```
 
-The three standard regimes cover equality with common scalar labels and path
-templates, sparse multi-token overlap with larger tree templates, and a smaller
-generic Jaccard tree-to-path score.  The notebook reports
+The standard and large throughput presets cover equality with common scalar
+labels and path templates, sparse multi-token overlap with larger tree
+templates, and generic Jaccard tree-to-path scores. The large preset increases
+both the tree sizes and the number of query-template pairs.  The notebook reports
 one-time preparation separately from warm score-matrix search.  It also saves
 all score matrices, so exact implementations are compared entry by entry before
 being used as an accuracy oracle.
@@ -159,3 +162,38 @@ limits remain explicit `skipped` rows and do not start a worker.
   accuracy and per-pair accuracy summaries are still shown separately.
 - The `smoke` presets in both notebooks are correctness checks, not evidence for
   performance conclusions.
+
+
+## Scaling and beam-parameter sweeps
+
+Run the checked-in size and beam sweeps from the repository root:
+
+```bash
+python experiments/run_path_match_sweeps.py \
+  --config experiments/path_match_sweeps_large.json \
+  --output-dir benchmarking/results/path_match_sweeps_large_v1
+```
+
+The sweep configuration contains five size sweeps and four controlled beam
+parameter sweeps. It writes `sweep_rows.csv`, `sweep_summary.csv`, and the
+ordinary benchmark artifacts for every individual point. The current sweep
+file intentionally leaves lookahead disabled; its purpose is to calibrate the
+base beams before adding further heuristics.
+
+## Talk-ready figures
+
+Generate uncluttered PNG and PDF figures from saved results without rerunning a
+matcher:
+
+```bash
+python benchmarking/make_benchmark_figures.py \
+  --pairwise benchmarking/results/algorithm_ranking_large_large_v1 \
+  --throughput benchmarking/results/path_match_throughput_large_large_v1 \
+  --sweeps benchmarking/results/path_match_sweeps_large_v1 \
+  --outdir benchmarking/results/figures_large_v1
+```
+
+The script uses shared legends instead of overlapping point labels and creates
+speed-accuracy panels, generic-versus-encoded exact comparisons, size-scaling
+curves, and beam-parameter tradeoff figures. See
+`BENCHMARK_RUN_AND_FIGURE_GUIDE.pdf` for the short operational guide.

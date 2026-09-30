@@ -225,6 +225,33 @@ Final timing claims should use several seeds or repeated complete runs on a
 quiet machine; the supplied standard run is a baseline measurement, not a
 hardware-independent fact.
 
+
+
+## Large notebook presets and controlled sweeps
+
+The notebook-facing presets now have three scales:
+
+- `smoke`: wiring and correctness only;
+- `standard`: the first controlled scientific matrix;
+- `large`: larger trees, more independent instances or query-template pairs,
+  five timing repeats, and longer isolated-worker limits.
+
+The large pairwise and throughput configurations are
+`experiments/path_match_benchmark_large.json` and
+`experiments/path_match_throughput_large.json`.
+
+The separate `experiments/path_match_sweeps_large.json` configuration expands
+one base regime at a time. Size sweeps vary the tree size while fixing the score
+model and algorithm presets. Algorithm sweeps use aliases such as
+`partial_B200`, so every beam width or expansion budget remains explicit in the
+saved rows. Run them with `experiments/run_path_match_sweeps.py`; all ordinary
+correctness gates and isolated timing rules still come from
+`run_benchmark_config`.
+
+Talk-ready plots are produced by `benchmarking/make_benchmark_figures.py`. It
+reads saved CSV files, directories, or ZIP archives and never reruns a matcher.
+
+
 ## Safety limits
 
 Two suite-level limits currently prevent accidental large exact jobs:
