@@ -16,8 +16,11 @@ placeholder:
 - local candidate ranking combines match score, label-pair rarity, gap/balance
   penalties, a small continuation estimate, optional subtree-sketch lookahead,
   and optional seeded exploration;
-- frontier priority combines accumulated score with a conservative remaining
-  height bound and, when enabled, a precomputed subtree-compatibility lookahead.
+- frontier priority combines accumulated score with a remaining-height
+  estimate and, when enabled, a precomputed subtree-compatibility lookahead.
+  The height term is a true upper bound only when ``max_match_score`` is known
+  to bound every possible label-pair score; sampled label-pair preprocessing
+  does not provide that guarantee.
 
 Users can override the expansion rule, the candidate heuristic, and/or the beam
 priority.  The exact DP implementation remains in ``needleman_wunsch_tree.py``;
@@ -30,10 +33,12 @@ import bisect
 import heapq
 import math
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
+from .diagnostics import MatchDiagnostics, aggregate_diagnostics
 from .tree_data import TreeData
 from .needleman_wunsch_tree import AlignmentResult, WeightFn, id_match
 
@@ -54,7 +59,14 @@ BeamLookaheadScoreFn = Callable[[int, int], float]
 
 @dataclass(frozen=True, slots=True)
 class BeamHeuristicStats:
-    """Read-only arrays and constants useful to custom beam heuristics."""
+    """
+    Read-only arrays and constants useful to custom beam heuristics.
+
+    ``max_match_score`` is the largest score found during label-pair
+    preprocessing.  It need not be a global maximum when that preprocessing
+    samples label pairs, so quantities named ``future_bound`` in the callback
+    contexts should then be interpreted as heuristic future estimates.
+    """
 
     depthG: np.ndarray
     depthH: np.ndarray
@@ -127,7 +139,9 @@ class BeamExpansionContext:
 
     A custom expansion function should return an iterable of ``(u, v)`` pairs,
     or ``(u, v, score)`` triples.  Pairs must be strict descendants of
-    ``last_u`` and ``last_v``; the implementation validates this.
+    ``last_u`` and ``last_v``; the implementation validates this.  A supplied
+    triple score is treated as authoritative and is not checked against the
+    match predicate or the weight function.
     """
 
     G: TreeData
@@ -227,6 +241,7 @@ class _LookaheadIndex:
     label_weight: float
     chunk_weight: float
     cache: Dict[int, float]
+    diagnostics: Optional[MatchDiagnostics] = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -450,7 +465,15 @@ def _score_label_pair(
     w_fn: WeightFn,
     w_is_id: bool,
     match_predicate: Optional[MatchPredicate],
+    diagnostics: Optional[MatchDiagnostics] = None,
+    counter: str = "node_pair",
 ) -> float:
+    if diagnostics is not None:
+        if counter == "node_pair":
+            diagnostics.node_pair_score_evaluations += 1
+        else:
+            key = f"{counter}_score_evaluations"
+            diagnostics.extra[key] = int(diagnostics.extra.get(key, 0)) + 1
     if match_predicate is not None and not bool(match_predicate(label_g, label_h)):
         return -math.inf
     if w_is_id:
@@ -471,6 +494,7 @@ def _build_label_pairs(
     rarity_weight: float,
     max_label_pair_scan: int,
     rng: np.random.Generator,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> List[_LabelPair]:
     """Precompute positive-scoring label pairs for default expansion."""
 
@@ -494,6 +518,8 @@ def _build_label_pairs(
             w_fn=w_fn,
             w_is_id=w_is_id,
             match_predicate=match_predicate,
+            diagnostics=diagnostics,
+            counter="label_pair_preprocessing",
         )
         if not math.isfinite(score) or score <= min_match_score:
             return
@@ -681,6 +707,7 @@ def _build_lookahead_index(
     chunk_size: int,
     label_weight: float,
     chunk_weight: float,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> _LookaheadIndex:
     return _LookaheadIndex(
         idxG=idxG,
@@ -705,6 +732,7 @@ def _build_lookahead_index(
         label_weight=float(label_weight),
         chunk_weight=float(chunk_weight),
         cache={},
+        diagnostics=diagnostics,
     )
 
 
@@ -760,6 +788,8 @@ def _lookahead_label_overlap(
                 w_fn=lookahead.w_fn,
                 w_is_id=lookahead.w_is_id,
                 match_predicate=lookahead.match_predicate,
+                diagnostics=lookahead.diagnostics,
+                counter="lookahead",
             )
             if math.isfinite(score) and score > lookahead.min_match_score:
                 raw += mass * float(score)
@@ -776,6 +806,8 @@ def _lookahead_label_overlap(
                 w_fn=lookahead.w_fn,
                 w_is_id=lookahead.w_is_id,
                 match_predicate=lookahead.match_predicate,
+                diagnostics=lookahead.diagnostics,
+                counter="lookahead",
             )
             if math.isfinite(score) and score > lookahead.min_match_score:
                 pair_scores.append((float(score), repr(key_g), repr(key_h), key_g, key_h))
@@ -819,6 +851,8 @@ def _chunk_pair_score(
             w_fn=lookahead.w_fn,
             w_is_id=lookahead.w_is_id,
             match_predicate=lookahead.match_predicate,
+            diagnostics=lookahead.diagnostics,
+            counter="lookahead",
         )
         if not math.isfinite(score) or score <= lookahead.min_match_score:
             return 0.0
@@ -1031,6 +1065,7 @@ def _generate_default_expansion(
     candidate_heuristic: Optional[CandidateHeuristic],
     lookahead: Optional[_LookaheadIndex],
     rng: np.random.Generator,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> List[_ScoredCandidate]:
     heap: List[Tuple[float, int, _ScoredCandidate]] = []
     seen: set[int] = set()
@@ -1085,6 +1120,7 @@ def _generate_default_expansion(
                     w_fn=w_fn,
                     w_is_id=w_is_id,
                     match_predicate=match_predicate,
+                    diagnostics=diagnostics,
                 )
                 cand = _candidate_from_pair(
                     G,
@@ -1133,6 +1169,7 @@ def _generate_legacy_candidate_fn_expansion(
     candidate_heuristic: Optional[CandidateHeuristic],
     lookahead: Optional[_LookaheadIndex],
     rng: np.random.Generator,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> List[_ScoredCandidate]:
     descendants_g = _all_descendants(idxG, last_u)
     selected_g = _select_nodes(
@@ -1166,6 +1203,7 @@ def _generate_legacy_candidate_fn_expansion(
                 w_fn=w_fn,
                 w_is_id=w_is_id,
                 match_predicate=match_predicate,
+                diagnostics=diagnostics,
             )
             # Use a neutral rarity value because the legacy callback may use an
             # arbitrary blocking scheme unrelated to labels.
@@ -1217,6 +1255,7 @@ def _generate_custom_expansion(
     candidate_heuristic: Optional[CandidateHeuristic],
     lookahead: Optional[_LookaheadIndex],
     rng: np.random.Generator,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> List[_ScoredCandidate]:
     ctx = BeamExpansionContext(
         G=G,
@@ -1267,6 +1306,7 @@ def _generate_custom_expansion(
                 w_fn=w_fn,
                 w_is_id=w_is_id,
                 match_predicate=match_predicate,
+                diagnostics=diagnostics,
             )
         else:
             match_score = float(provided_score)
@@ -1370,7 +1410,20 @@ def _align_trees_beam_once(
     match_predicate: Optional[MatchPredicate],
     seed: int,
     max_length: Optional[int],
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> AlignmentResult:
+    total_start = perf_counter()
+    if diagnostics is not None:
+        diagnostics.reset(algorithm="beam_partial_run", n_g=G.n, n_h=H.n)
+        diagnostics.candidate_pairs_generated = 0
+        diagnostics.positive_candidate_pairs = 0
+        diagnostics.states_generated = 0
+        diagnostics.states_after_endpoint_pruning = 0
+        diagnostics.states_retained = 0
+        diagnostics.peak_frontier_size = 1
+        diagnostics.layers_processed = 0
+
+    preprocessing_start = perf_counter()
     if w is None:
         w_fn: WeightFn = id_match
         w_is_id = True
@@ -1394,6 +1447,7 @@ def _align_trees_beam_once(
         rarity_weight=params.rarity_weight,
         max_label_pair_scan=params.max_label_pair_scan,
         rng=rng,
+        diagnostics=diagnostics,
     )
     max_match_score = max((p.score for p in label_pairs), default=0.0)
     stats = BeamHeuristicStats(
@@ -1422,6 +1476,7 @@ def _align_trees_beam_once(
             chunk_size=params.lookahead_chunk_size,
             label_weight=params.lookahead_label_weight,
             chunk_weight=params.lookahead_chunk_weight,
+            diagnostics=diagnostics,
         )
 
     if max_length is None:
@@ -1430,6 +1485,14 @@ def _align_trees_beam_once(
         lmax = int(max_length)
         if lmax < 0:
             raise ValueError("max_length must be nonnegative")
+
+    if diagnostics is not None:
+        diagnostics.preprocessing_seconds = perf_counter() - preprocessing_start
+        diagnostics.extra["beam_width"] = params.beam_width
+        diagnostics.extra["expansion_width"] = params.expansion_width
+        diagnostics.extra["positive_label_pair_types"] = len(label_pairs)
+        diagnostics.extra["maximum_matching_length"] = lmax
+        diagnostics.extra["lookahead_enabled"] = bool(lookahead is not None)
 
     # State pool, using parallel lists rather than one Python object per state.
     last_u: List[int] = [-1]
@@ -1441,8 +1504,12 @@ def _align_trees_beam_once(
     frontier: List[int] = [0]
     best_state = 0
     best_score = 0.0
+    candidate_generation_seconds = 0.0
 
+    search_start = perf_counter()
     for layer in range(lmax):
+        if diagnostics is not None:
+            diagnostics.layers_processed += 1
         pruned_by_terminal: Dict[int, int] = {}
 
         for sid in frontier:
@@ -1451,6 +1518,7 @@ def _align_trees_beam_once(
             current_score = float(scores[sid])
             current_length = int(lengths[sid])
 
+            expansion_start = perf_counter() if diagnostics is not None else 0.0
             if expansion_fn is not None:
                 candidates = _generate_custom_expansion(
                     G,
@@ -1471,6 +1539,7 @@ def _align_trees_beam_once(
                     candidate_heuristic=candidate_heuristic,
                     lookahead=lookahead,
                     rng=rng,
+                    diagnostics=diagnostics,
                 )
             elif candidate_fn is not None:
                 candidates = _generate_legacy_candidate_fn_expansion(
@@ -1491,6 +1560,7 @@ def _align_trees_beam_once(
                     candidate_heuristic=candidate_heuristic,
                     lookahead=lookahead,
                     rng=rng,
+                    diagnostics=diagnostics,
                 )
             else:
                 candidates = _generate_default_expansion(
@@ -1511,7 +1581,16 @@ def _align_trees_beam_once(
                     candidate_heuristic=candidate_heuristic,
                     lookahead=lookahead,
                     rng=rng,
+                    diagnostics=diagnostics,
                 )
+            if diagnostics is not None:
+                candidate_generation_seconds += perf_counter() - expansion_start
+
+            if diagnostics is not None:
+                generated_here = len(candidates)
+                diagnostics.candidate_pairs_generated += generated_here
+                diagnostics.positive_candidate_pairs += generated_here
+                diagnostics.states_generated += generated_here
 
             for cand in candidates:
                 new_score = current_score + float(cand.match_score)
@@ -1535,6 +1614,8 @@ def _align_trees_beam_once(
             break
 
         pruned_states = list(pruned_by_terminal.values())
+        if diagnostics is not None:
+            diagnostics.states_after_endpoint_pruning += len(pruned_states)
         for sid in pruned_states:
             if scores[sid] > best_score:
                 best_score = float(scores[sid])
@@ -1565,11 +1646,33 @@ def _align_trees_beam_once(
             break
         top = heapq.nlargest(params.beam_width, ranked, key=lambda x: (x[0], x[1], x[2]))
         frontier = [sid for (_pri, _score, _neg_sid, sid) in top]
+        if diagnostics is not None:
+            diagnostics.states_retained += len(frontier)
+            diagnostics.peak_frontier_size = max(diagnostics.peak_frontier_size, len(frontier))
 
+    search_elapsed = perf_counter() - search_start
+    if diagnostics is not None:
+        diagnostics.candidate_generation_seconds = candidate_generation_seconds
+        diagnostics.search_seconds = max(0.0, search_elapsed - candidate_generation_seconds)
+        diagnostics.extra["state_pool_size"] = len(scores)
+        if lookahead is not None:
+            diagnostics.extra["lookahead_cache_entries"] = len(lookahead.cache)
+
+    traceback_start = perf_counter()
     if best_state == 0:
+        if diagnostics is not None:
+            diagnostics.traceback_seconds = perf_counter() - traceback_start
+            diagnostics.result_score = 0.0
+            diagnostics.result_length = 0
+            diagnostics.total_seconds = perf_counter() - total_start
         return AlignmentResult(path_internal=[], score=0.0, end_internal=(0, 0), A=None, C=None)
 
     path = _traceback(best_state, last_u, last_v, prev)
+    if diagnostics is not None:
+        diagnostics.traceback_seconds = perf_counter() - traceback_start
+        diagnostics.result_score = float(best_score)
+        diagnostics.result_length = len(path)
+        diagnostics.total_seconds = perf_counter() - total_start
     return AlignmentResult(
         path_internal=path,
         score=float(best_score),
@@ -1647,6 +1750,7 @@ def align_trees_beam(
     lookahead_label_weight: float = 1.0,
     lookahead_chunk_weight: float = 0.5,
     max_length: Optional[int] = None,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> AlignmentResult:
     """
     Beam search over valid partial matchings.
@@ -1668,6 +1772,8 @@ def align_trees_beam(
     expansion_fn:
         Optional custom expansion rule ``N(x, y)``.  It receives a
         ``BeamExpansionContext`` and returns feasible pairs or scored triples.
+        Scores supplied in triples are used directly and are not recomputed or
+        validated against ``w``.
     candidate_heuristic:
         Optional local heuristic for ranking candidate descendant pairs.  It
         receives a ``BeamCandidateContext``.
@@ -1692,6 +1798,14 @@ def align_trees_beam(
         Relative weights of the discounted descendant-label overlap and exact
         fixed-length path-shingle overlap before the result is capped by the
         remaining path-height estimate.
+    candidate_future_weight, priority_future_weight:
+        Weights on a remaining-height estimate constructed from the largest
+        score found during label-pair preprocessing.  The estimate is not
+        necessarily an upper bound when label-pair preprocessing is sampled.
+    max_candidates_per_label:
+        Deprecated compatibility argument.  It is currently ignored; use
+        ``max_nodes_per_label_side`` to cap nodes selected from each label
+        bucket.
     prefer_match_on_tie:
         Accepted for API compatibility with the exact matcher; this search does
         not form DP cells, so there is no DP tie-break to apply.
@@ -1737,8 +1851,12 @@ def align_trees_beam(
     if n_restarts < 1:
         raise ValueError("n_restarts must be >= 1")
 
+    total_start = perf_counter()
     best: Optional[AlignmentResult] = None
+    best_restart = -1
+    child_diagnostics: List[MatchDiagnostics] = []
     for restart in range(int(n_restarts)):
+        child = MatchDiagnostics() if diagnostics is not None else None
         res = _align_trees_beam_once(
             G,
             H,
@@ -1751,11 +1869,35 @@ def align_trees_beam(
             match_predicate=match_predicate,
             seed=int(seed) + restart,
             max_length=max_length,
+            diagnostics=child,
         )
+        if child is not None:
+            child_diagnostics.append(child)
         if best is None or res.score > best.score:
             best = res
+            best_restart = restart
 
     assert best is not None
+    if diagnostics is not None:
+        aggregate = aggregate_diagnostics(
+            child_diagnostics,
+            algorithm="beam_partial",
+            n_g=G.n,
+            n_h=H.n,
+        )
+        aggregate.restarts = int(n_restarts)
+        aggregate.directions = 1
+        aggregate.result_score = float(best.score)
+        aggregate.result_length = len(best.path_internal)
+        aggregate.total_seconds = perf_counter() - total_start
+        aggregate.extra["selected_restart"] = best_restart
+        aggregate.extra["restart_scores"] = [child.result_score for child in child_diagnostics]
+        for key in ("label_pair_preprocessing_score_evaluations", "lookahead_score_evaluations"):
+            aggregate.extra[key] = sum(int(child.extra.get(key, 0)) for child in child_diagnostics)
+        if 0 <= best_restart < len(child_diagnostics):
+            aggregate.extra["selected_run"] = dict(child_diagnostics[best_restart].extra)
+        diagnostics.__dict__.clear()
+        diagnostics.__dict__.update(aggregate.__dict__)
     return best
 
 
@@ -1796,6 +1938,7 @@ def align_trees_beam_symmetric(
     lookahead_label_weight: float = 1.0,
     lookahead_chunk_weight: float = 0.5,
     max_length: Optional[int] = None,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> AlignmentResult:
     """
     Run the partial-matching beam in both directions and keep the better score.
@@ -1805,6 +1948,7 @@ def align_trees_beam_symmetric(
     stochastic/asymmetric custom heuristics, but it roughly doubles work.
     """
 
+    total_start = perf_counter()
     kwargs = dict(
         w=w,
         beam_width=beam_width,
@@ -1840,12 +1984,24 @@ def align_trees_beam_symmetric(
         lookahead_chunk_weight=lookahead_chunk_weight,
         max_length=max_length,
     )
-    res_fwd = align_trees_beam(G, H, **kwargs)
+    diag_fwd = MatchDiagnostics() if diagnostics is not None else None
+    res_fwd = align_trees_beam(G, H, diagnostics=diag_fwd, **kwargs)
 
     # User-supplied expansion/candidate/heuristic functions are usually written
     # for the original orientation.  Do not silently apply them to swapped
     # trees; the single forward run above is the meaningful result.
     if expansion_fn is not None or candidate_fn is not None or candidate_heuristic is not None or priority_fn is not None:
+        if diagnostics is not None:
+            assert diag_fwd is not None
+            aggregate = diag_fwd.copy()
+            aggregate.algorithm = "beam_partial_symmetric"
+            aggregate.directions = 1
+            aggregate.total_seconds = perf_counter() - total_start
+            aggregate.extra["selected_direction"] = "forward"
+            aggregate.extra["reverse_skipped_for_custom_callbacks"] = True
+            aggregate.extra["forward_run"] = dict(diag_fwd.extra)
+            diagnostics.__dict__.clear()
+            diagnostics.__dict__.update(aggregate.__dict__)
         return res_fwd
 
     kwargs_rev = dict(kwargs)
@@ -1853,16 +2009,44 @@ def align_trees_beam_symmetric(
         kwargs_rev["w"] = lambda label_h, label_g: w(label_g, label_h)
     if match_predicate is not None:
         kwargs_rev["match_predicate"] = lambda label_h, label_g: match_predicate(label_g, label_h)
-    res_rev = align_trees_beam(H, G, **kwargs_rev)
+    diag_rev = MatchDiagnostics() if diagnostics is not None else None
+    res_rev = align_trees_beam(H, G, diagnostics=diag_rev, **kwargs_rev)
 
     if res_rev.score > res_fwd.score:
         swapped_path = [(v, u) for (u, v) in res_rev.path_internal]
         end_uH, end_vG = res_rev.end_internal
-        return AlignmentResult(
+        result = AlignmentResult(
             path_internal=swapped_path,
             score=res_rev.score,
             end_internal=(end_vG, end_uH),
             A=None,
             C=None,
         )
-    return res_fwd
+        selected_direction = "reverse"
+    else:
+        result = res_fwd
+        selected_direction = "forward"
+
+    if diagnostics is not None:
+        assert diag_fwd is not None and diag_rev is not None
+        aggregate = aggregate_diagnostics(
+            [diag_fwd, diag_rev],
+            algorithm="beam_partial_symmetric",
+            n_g=G.n,
+            n_h=H.n,
+        )
+        aggregate.restarts = int(n_restarts)
+        aggregate.directions = 2
+        aggregate.result_score = float(result.score)
+        aggregate.result_length = len(result.path_internal)
+        aggregate.total_seconds = perf_counter() - total_start
+        aggregate.extra["selected_direction"] = selected_direction
+        aggregate.extra["forward_score"] = float(res_fwd.score)
+        aggregate.extra["reverse_score"] = float(res_rev.score)
+        for key in ("label_pair_preprocessing_score_evaluations", "lookahead_score_evaluations"):
+            aggregate.extra[key] = int(diag_fwd.extra.get(key, 0)) + int(diag_rev.extra.get(key, 0))
+        aggregate.extra["forward_run"] = dict(diag_fwd.extra)
+        aggregate.extra["reverse_run"] = dict(diag_rev.extra)
+        diagnostics.__dict__.clear()
+        diagnostics.__dict__.update(aggregate.__dict__)
+    return result

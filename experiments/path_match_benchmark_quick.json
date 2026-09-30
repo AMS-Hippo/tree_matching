@@ -1,0 +1,120 @@
+{
+  "suite_name": "path_match_quick",
+  "repeats": 1,
+  "warmup": 1,
+  "quality_floor": 0.99,
+  "exact_score_abs_tol": 1e-05,
+  "exact_score_rel_tol": 1e-06,
+  "algorithm_order_seed": 20260928,
+  "execution_mode": "in_process",
+  "timeout_seconds": null,
+  "thread_count": null,
+  "max_dense_cells": 1000000,
+  "max_sparse_posting_hits": 1000000,
+  "algorithms": [
+    "exact_dense",
+    "fast_dense",
+    "sparse_closure",
+    "sparse_chain",
+    "fast_sparse",
+    "beam_local",
+    "beam_local_capped",
+    "beam_partial_score"
+  ],
+  "regimes": [
+    {
+      "name": "quick_generic_jaccard",
+      "n_g": 40,
+      "n_h": 36,
+      "shape_g": "medium",
+      "shape_h": "medium",
+      "comparison": "tree_tree",
+      "alphabet_size": 8,
+      "symbol_distribution": "uniform",
+      "symbols_per_node": {
+        "kind": "categorical",
+        "values": [
+          1,
+          2
+        ],
+        "probs": [
+          0.6,
+          0.4
+        ]
+      },
+      "score_mode": "jaccard",
+      "weight_mode": "uniform",
+      "planted_length": 8,
+      "p_obs_g": 0.9,
+      "p_obs_h": 0.9,
+      "n_instances": 1,
+      "seed": 101,
+      "expected_algorithm": "exact_dense",
+      "notes": "Small generic-score correctness and overhead smoke test."
+    },
+    {
+      "name": "quick_dense_overlap",
+      "n_g": 120,
+      "n_h": 120,
+      "shape_g": "medium",
+      "shape_h": "medium",
+      "comparison": "tree_tree",
+      "alphabet_size": 8,
+      "symbol_distribution": "uniform",
+      "symbols_per_node": 3,
+      "score_mode": "overlap",
+      "weight_mode": "uniform",
+      "planted_length": 10,
+      "n_instances": 1,
+      "seed": 102,
+      "expected_algorithm": "fast_dense",
+      "notes": "Dense positive-pair regime for the specialized Numba matcher."
+    },
+    {
+      "name": "quick_sparse_equality",
+      "n_g": 350,
+      "n_h": 350,
+      "shape_g": "medium",
+      "shape_h": "medium",
+      "comparison": "tree_tree",
+      "alphabet_size": 180,
+      "symbol_distribution": "uniform",
+      "symbols_per_node": 1,
+      "score_mode": "equality",
+      "weight_mode": "uniform",
+      "planted_length": 10,
+      "n_instances": 1,
+      "seed": 103,
+      "expected_algorithm": "fast_sparse",
+      "notes": "Small sparse-candidate smoke test; the full suite is needed for a meaningful crossover."
+    },
+    {
+      "name": "quick_tree_to_path",
+      "n_g": 400,
+      "n_h": 45,
+      "shape_g": "narrow",
+      "shape_h": "path",
+      "comparison": "tree_path",
+      "alphabet_size": 20,
+      "symbol_distribution": "uniform",
+      "symbols_per_node": {
+        "kind": "categorical",
+        "values": [
+          1,
+          2
+        ],
+        "probs": [
+          0.75,
+          0.25
+        ]
+      },
+      "score_mode": "jaccard",
+      "weight_mode": "uniform",
+      "planted_length": 14,
+      "n_instances": 1,
+      "seed": 104,
+      "expected_algorithm": "beam_local",
+      "notes": "Typical tree-to-template-path shape with low local degrees."
+    }
+  ]
+}

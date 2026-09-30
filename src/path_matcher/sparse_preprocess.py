@@ -12,6 +12,7 @@ and plausible matches are expected to share at least one blocking key.
 
 We compute:
 - TreeData (possibly reordered to satisfy parent<child),
+- children and DFS entry/exit intervals for the rooted tree,
 - node_keys[u]: tuple of blocking keys for each node u,
 - key_to_nodes: inverted index key -> list of node ids,
 - key_counts: full counts per key (before truncation),
@@ -24,6 +25,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
 
 import hashlib
+import warnings
 import numpy as np
 
 from .tree_data import TreeData
@@ -67,6 +69,12 @@ class PreprocessedTree:
         Inverted index: key -> list of node ids (possibly truncated for storage).
     key_counts:
         Full counts per key (before truncation).
+    children:
+        children[u] is the tuple of children of u.  This is cached because the
+        sparse product-poset algorithm traverses the first tree repeatedly.
+    tin, tout:
+        Inclusive DFS subtree interval.  A node v belongs to the subtree rooted
+        at u exactly when tin[u] <= tin[v] <= tout[u].
     sketch_k:
         Number of minhash values per node in subtree sketch.
     subtree_sketch:
@@ -79,9 +87,84 @@ class PreprocessedTree:
     node_keys: List[Tuple[Hashable, ...]]
     key_to_nodes: Dict[Hashable, List[int]]
     key_counts: Dict[Hashable, int]
+    children: Tuple[Tuple[int, ...], ...]
+    tin: np.ndarray
+    tout: np.ndarray
     sketch_k: int = 0
     subtree_sketch: Optional[np.ndarray] = None
     sketch_to_nodes: Optional[Dict[int, List[int]]] = None
+
+
+def _weights_look_equivalent(a: Any, b: Any) -> bool:
+    if a is b:
+        return True
+    if type(a) is not type(b):
+        return False
+    try:
+        equal = a == b
+    except Exception:
+        return False
+    return bool(equal) if isinstance(equal, (bool, np.bool_)) else False
+
+
+def warn_if_weight_override_differs(
+    G: PreprocessedTree,
+    H: PreprocessedTree,
+    w: Optional[Any],
+    *,
+    stacklevel: int = 2,
+) -> None:
+    """Warn when internally generated candidates use different blocking weights.
+
+    A score override is allowed so exploratory work can continue, but candidate
+    completeness is then only guaranteed if the old and new blocking contracts
+    are compatible.
+    """
+
+    if w is None:
+        return
+    if _weights_look_equivalent(w, G.w) and _weights_look_equivalent(w, H.w):
+        return
+    warnings.warn(
+        "Sparse candidates were generated from blocking keys built with a different "
+        "weight object than the scoring weight supplied for this match. Positive pairs "
+        "may therefore be omitted; the result remains exact only relative to the "
+        "generated candidate set. To avoid this warning, preprocess both trees with "
+        "the same bucketable weight used for scoring.",
+        UserWarning,
+        stacklevel=stacklevel,
+    )
+
+
+def _build_tree_structure(tree: TreeData) -> Tuple[Tuple[Tuple[int, ...], ...], np.ndarray, np.ndarray]:
+    """Build child lists and inclusive DFS subtree intervals."""
+    n = tree.n
+    parent = np.asarray(tree.parent, dtype=np.int64)
+
+    children_mut: List[List[int]] = [[] for _ in range(n)]
+    for u in range(1, n):
+        children_mut[int(parent[u])].append(u)
+    children: Tuple[Tuple[int, ...], ...] = tuple(tuple(row) for row in children_mut)
+
+    tin = np.empty(n, dtype=np.int32)
+    tout = np.empty(n, dtype=np.int32)
+    timer = 0
+    stack: List[Tuple[int, bool]] = [(0, False)]
+    while stack:
+        u, exiting = stack.pop()
+        if not exiting:
+            tin[u] = np.int32(timer)
+            timer += 1
+            stack.append((u, True))
+            for child in reversed(children[u]):
+                stack.append((child, False))
+        else:
+            tout[u] = np.int32(timer - 1)
+
+    if timer != n:  # defensive: TreeData should already guarantee one rooted tree
+        raise ValueError("TreeData is not connected to root 0")
+
+    return children, tin, tout
 
 
 def preprocess_treedata(
@@ -130,6 +213,7 @@ def preprocess_treedata(
     rng = np.random.default_rng(seed)
 
     n = tree.n
+    children, tin, tout = _build_tree_structure(tree)
     node_keys: List[Tuple[Hashable, ...]] = []
     key_counts: Dict[Hashable, int] = {}
     key_to_nodes_full: Dict[Hashable, List[int]] = {}
@@ -161,12 +245,6 @@ def preprocess_treedata(
     if build_subtree_sketch:
         if sketch_k <= 0:
             raise ValueError("sketch_k must be positive when build_subtree_sketch=True")
-
-        parent = np.asarray(tree.parent, dtype=np.int64)
-        children: List[List[int]] = [[] for _ in range(n)]
-        for u in range(1, n):
-            p = int(parent[u])
-            children[p].append(u)
 
         # Precompute eligible hashed keys for each node (only rare keys contribute).
         own_hashes: List[List[int]] = [[] for _ in range(n)]
@@ -214,6 +292,9 @@ def preprocess_treedata(
         node_keys=node_keys,
         key_to_nodes=key_to_nodes,
         key_counts=key_counts,
+        children=children,
+        tin=tin,
+        tout=tout,
         sketch_k=(sketch_k if build_subtree_sketch else 0),
         subtree_sketch=subtree_sketch,
         sketch_to_nodes=sketch_to_nodes,

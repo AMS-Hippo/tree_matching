@@ -1,13 +1,16 @@
 """
-High-level matcher interface for exact, beam, and sparse tree-path matching.
+High-level matcher interface for exact, local-beam, partial-beam, sparse-closure,
+and sparse product-poset tree-path matching.
 """
 
 from __future__ import annotations
 
+from time import perf_counter
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 
+from .diagnostics import MatchDiagnostics
 from .igraph_io import igraph_to_treedata
 from .tree_data import TreeData
 from .needleman_wunsch_tree import AlignmentResult, WeightFn, align_trees_algorithm1, align_tree_to_repeating_template
@@ -20,9 +23,11 @@ from .beam_align import (
     align_trees_beam,
     align_trees_beam_symmetric,
 )
+from .local_beam_align import align_trees_local_beam
 from .bucketable_weight import EqualityBucketWeight, assert_bucketable_weight
-from .sparse_preprocess import PreprocessedTree, preprocess_igraph
+from .sparse_preprocess import PreprocessedTree, preprocess_igraph, preprocess_treedata
 from .sparse_align import SparseCandidateConfig, align_trees_sparse_candidates
+from .sparse_chain import align_trees_sparse_chain
 from .normalizer import exponential_count
 from .reference_match import (
     ReferenceAlignmentResult,
@@ -44,7 +49,7 @@ def _looks_like_treedata(x: Any) -> bool:
 
 
 def _looks_like_preprocessed_tree(x: Any) -> bool:
-    return hasattr(x, "tree") and hasattr(x, "nodes_by_key")
+    return hasattr(x, "tree") and hasattr(x, "key_to_nodes")
 
 
 class TreePathMatcher:
@@ -60,6 +65,7 @@ class TreePathMatcher:
         strict_tree: bool = True,
         dtype: Any = np.float32,
         beam_width: int = 200,
+        beam_local_child_cap: Optional[int] = None,
         beam_symmetric: bool = False,
         beam_expansion_width: Optional[int] = 64,
         beam_expansion_fn: Optional[BeamExpansionFn] = None,
@@ -100,11 +106,14 @@ class TreePathMatcher:
         sketch_k: int = 8,
         sketch_max_key_freq: int = 50,
         sketch_hash_salt: int = 0,
-        sparse_cfg: SparseCandidateConfig = SparseCandidateConfig(),
+        sparse_cfg: Optional[SparseCandidateConfig] = None,
+        collect_diagnostics: bool = False,
     ) -> None:
         method = method.lower()
-        if method not in {"exact", "beam", "sparse"}:
-            raise ValueError("method must be one of: 'exact', 'beam', 'sparse'")
+        if method not in {"exact", "beam", "beam_local", "sparse", "sparse_chain"}:
+            raise ValueError(
+                "method must be one of: 'exact', 'beam', 'beam_local', 'sparse', 'sparse_chain'"
+            )
         mode = mode.lower().strip()
         if mode not in {"unique", "template_repeat"}:
             raise ValueError("mode must be one of: 'unique', 'template_repeat'")
@@ -115,6 +124,8 @@ class TreePathMatcher:
             raise ValueError("template_repeat_penalty must be nonnegative")
         if beam_width < 1:
             raise ValueError("beam_width must be >= 1")
+        if beam_local_child_cap is not None and beam_local_child_cap < 1:
+            raise ValueError("beam_local_child_cap must be >= 1, or None")
         if beam_expansion_width is not None and beam_expansion_width < 1:
             raise ValueError("beam_expansion_width must be >= 1, or None")
         if beam_n_restarts < 1:
@@ -153,6 +164,7 @@ class TreePathMatcher:
         self.dtype = dtype
 
         self.beam_width = int(beam_width)
+        self.beam_local_child_cap = beam_local_child_cap
         self.beam_symmetric = bool(beam_symmetric)
         self.beam_expansion_width = beam_expansion_width
         self.beam_expansion_fn = beam_expansion_fn
@@ -193,9 +205,17 @@ class TreePathMatcher:
         self.sketch_k = sketch_k
         self.sketch_max_key_freq = sketch_max_key_freq
         self.sketch_hash_salt = sketch_hash_salt
-        self.sparse_cfg = sparse_cfg
+        self.collect_diagnostics = bool(collect_diagnostics)
+        if sparse_cfg is None:
+            self.sparse_cfg = (
+                SparseCandidateConfig.exhaustive()
+                if self.method == "sparse_chain"
+                else SparseCandidateConfig()
+            )
+        else:
+            self.sparse_cfg = sparse_cfg
 
-        self.w = EqualityBucketWeight() if (self.method == "sparse" and w is None) else w
+        self.w = EqualityBucketWeight() if (self.method in {"sparse", "sparse_chain"} and w is None) else w
 
         self.treeG_: Optional[TreeData] = None
         self.treeH_: Optional[TreeData] = None
@@ -207,6 +227,8 @@ class TreePathMatcher:
         self._last_tree_G: Optional[TreeData] = None
         self._last_raw_H: Any = None
         self._last_tree_H: Optional[TreeData] = None
+        self.last_diagnostics_: Optional[MatchDiagnostics] = None
+        self.last_fit_diagnostics_: Optional[MatchDiagnostics] = None
 
     def _convert_raw_graph(self, G: GraphLike) -> TreeData:
         return igraph_to_treedata(
@@ -222,7 +244,7 @@ class TreePathMatcher:
             return X  # type: ignore[return-value]
 
         if isinstance(X, PreprocessedTree) or _looks_like_preprocessed_tree(X):
-            raise TypeError("PreprocessedTree inputs are only supported for method='sparse'.")
+            raise TypeError("PreprocessedTree inputs are only supported for sparse methods.")
 
         if slot == "G" and X is self._last_raw_G and self._last_tree_G is not None:
             return self._last_tree_G
@@ -239,16 +261,11 @@ class TreePathMatcher:
         return tree
 
     def preprocess(self, G: GraphLike) -> PreprocessedTree:
-        if self.method != "sparse":
-            raise RuntimeError("preprocess() is only meaningful for method='sparse'")
-        assert_bucketable_weight(self.w, mode_name="sparse")
-        return preprocess_igraph(
-            G,
+        if self.method not in {"sparse", "sparse_chain"}:
+            raise RuntimeError("preprocess() is only meaningful for sparse methods")
+        assert_bucketable_weight(self.w, mode_name=self.method)
+        common = dict(
             w=self.w,
-            phi_name=self.phi_name,
-            order=self.order,
-            ts_field=self.ts_field,
-            strict_tree=self.strict_tree,
             max_nodes_per_key=self.max_nodes_per_key,
             key_select_mode=self.key_select_mode,
             seed=self.seed,
@@ -257,18 +274,56 @@ class TreePathMatcher:
             sketch_max_key_freq=self.sketch_max_key_freq,
             sketch_hash_salt=self.sketch_hash_salt,
         )
+        if isinstance(G, TreeData) or _looks_like_treedata(G):
+            return preprocess_treedata(G, **common)  # type: ignore[arg-type]
+        return preprocess_igraph(
+            G,
+            phi_name=self.phi_name,
+            order=self.order,
+            ts_field=self.ts_field,
+            strict_tree=self.strict_tree,
+            **common,
+        )
 
     def fit(self, G: Union[ExactBeamInput, SparseInput], H: Union[ExactBeamInput, SparseInput]) -> "TreePathMatcher":
-        if self.method == "sparse":
-            assert_bucketable_weight(self.w, mode_name="sparse")
+        start = perf_counter()
+        self.last_fit_diagnostics_ = None
+        if self.method in {"sparse", "sparse_chain"}:
+            assert_bucketable_weight(self.w, mode_name=self.method)
             self.preG_ = G if (isinstance(G, PreprocessedTree) or _looks_like_preprocessed_tree(G)) else self.preprocess(G)
             self.preH_ = H if (isinstance(H, PreprocessedTree) or _looks_like_preprocessed_tree(H)) else self.preprocess(H)
             self.treeG_ = self.preG_.tree
             self.treeH_ = self.preH_.tree
+            if self.collect_diagnostics:
+                diag = MatchDiagnostics(
+                    algorithm=f"{self.method}_fit",
+                    n_g=self.treeG_.n,
+                    n_h=self.treeH_.n,
+                )
+                diag.input_preprocessing_seconds = perf_counter() - start
+                diag.total_seconds = diag.input_preprocessing_seconds
+                diag.extra["preprocessed_inputs_reused"] = bool(
+                    (isinstance(G, PreprocessedTree) or _looks_like_preprocessed_tree(G))
+                    and (isinstance(H, PreprocessedTree) or _looks_like_preprocessed_tree(H))
+                )
+                self.last_fit_diagnostics_ = diag
+            else:
+                self.last_fit_diagnostics_ = None
             return self
 
         self.treeG_ = self._coerce_exact_beam_input(G, slot="G")
         self.treeH_ = self._coerce_exact_beam_input(H, slot="H")
+        if self.collect_diagnostics:
+            diag = MatchDiagnostics(
+                algorithm=f"{self.method}_fit",
+                n_g=self.treeG_.n,
+                n_h=self.treeH_.n,
+            )
+            diag.input_preprocessing_seconds = perf_counter() - start
+            diag.total_seconds = diag.input_preprocessing_seconds
+            self.last_fit_diagnostics_ = diag
+        else:
+            self.last_fit_diagnostics_ = None
         return self
 
     def normalize(self, mode: str = "exponential_count", replace: bool = False, hp: float = 1.0):
@@ -288,9 +343,15 @@ class TreePathMatcher:
         G: Optional[ExactBeamInput | SparseInput] = None,
         H: Optional[ExactBeamInput | SparseInput] = None,
     ) -> Tuple[List[Tuple[int, int]], float]:
-        if self.method == "sparse":
-            assert_bucketable_weight(self.w, mode_name="sparse")
-            if G is not None or H is not None:
+        total_start = perf_counter()
+        self.last_diagnostics_ = None
+        supplied_inputs = G is not None or H is not None
+        input_start = total_start
+        diagnostics = MatchDiagnostics() if self.collect_diagnostics else None
+
+        if self.method in {"sparse", "sparse_chain"}:
+            assert_bucketable_weight(self.w, mode_name=self.method)
+            if supplied_inputs:
                 if G is None or H is None:
                     raise ValueError("Either provide both G and H, or provide neither.")
                 preG = G if (isinstance(G, PreprocessedTree) or _looks_like_preprocessed_tree(G)) else self.preprocess(G)
@@ -300,18 +361,37 @@ class TreePathMatcher:
                     raise RuntimeError("Must call fit(G,H) before predict() if no inputs are provided.")
                 preG, preH = self.preG_, self.preH_
 
-            res: AlignmentResult = align_trees_sparse_candidates(
-                preG,
-                preH,
-                candidates=None,
-                cfg=self.sparse_cfg,
-                w=self.w,
-                prefer_match_on_tie=self.prefer_match_on_tie,
-            )
+            input_seconds = perf_counter() - input_start if supplied_inputs else 0.0
+            if self.method == "sparse_chain":
+                res: AlignmentResult = align_trees_sparse_chain(
+                    preG,
+                    preH,
+                    candidates=None,
+                    cfg=self.sparse_cfg,
+                    w=self.w,
+                    diagnostics=diagnostics,
+                )
+            else:
+                res = align_trees_sparse_candidates(
+                    preG,
+                    preH,
+                    candidates=None,
+                    cfg=self.sparse_cfg,
+                    w=self.w,
+                    prefer_match_on_tie=self.prefer_match_on_tie,
+                    diagnostics=diagnostics,
+                )
             path_orig = [(int(preG.tree.orig_index[u]), int(preH.tree.orig_index[v])) for (u, v) in res.path_internal]
+            if diagnostics is not None:
+                diagnostics.input_preprocessing_seconds += input_seconds
+                diagnostics.total_seconds = perf_counter() - total_start
+                diagnostics.extra["used_fitted_inputs"] = not supplied_inputs
+                self.last_diagnostics_ = diagnostics.copy()
+            else:
+                self.last_diagnostics_ = None
             return path_orig, res.score
 
-        if G is not None or H is not None:
+        if supplied_inputs:
             if G is None or H is None:
                 raise ValueError("Either provide both G and H, or provide neither.")
             treeG = self._coerce_exact_beam_input(G, slot="G")
@@ -320,12 +400,13 @@ class TreePathMatcher:
             if self.treeG_ is None or self.treeH_ is None:
                 raise RuntimeError("Must call fit(G,H) before predict() if no inputs are provided.")
             treeG, treeH = self.treeG_, self.treeH_
+        input_seconds = perf_counter() - input_start if supplied_inputs else 0.0
 
         if self.w is None:
             w_fn: Optional[WeightFn] = None
         else:
             if not callable(self.w):
-                raise TypeError("w must be callable for method='exact'/'beam'")
+                raise TypeError("w must be callable for method='exact'/'beam'/'beam_local'")
             w_fn = self.w
 
         if self.method == "exact":
@@ -337,6 +418,7 @@ class TreePathMatcher:
                     dtype=self.dtype,
                     prefer_match_on_tie=self.prefer_match_on_tie,
                     repeat_penalty=self.template_repeat_penalty,
+                    diagnostics=diagnostics,
                 )
             else:
                 res = align_trees_algorithm1(
@@ -345,7 +427,17 @@ class TreePathMatcher:
                     w=w_fn,
                     dtype=self.dtype,
                     prefer_match_on_tie=self.prefer_match_on_tie,
+                    diagnostics=diagnostics,
                 )
+        elif self.method == "beam_local":
+            res = align_trees_local_beam(
+                treeG,
+                treeH,
+                w=w_fn,
+                beam_width=self.beam_width,
+                child_cap=self.beam_local_child_cap,
+                diagnostics=diagnostics,
+            )
         else:
             beam_fn = align_trees_beam_symmetric if self.beam_symmetric else align_trees_beam
             res = beam_fn(
@@ -384,9 +476,17 @@ class TreePathMatcher:
                 match_predicate=self.match_predicate,
                 prefer_match_on_tie=self.prefer_match_on_tie,
                 max_length=self.beam_max_length,
+                diagnostics=diagnostics,
             )
 
         path_orig = [(int(treeG.orig_index[u]), int(treeH.orig_index[v])) for (u, v) in res.path_internal]
+        if diagnostics is not None:
+            diagnostics.input_preprocessing_seconds += input_seconds
+            diagnostics.total_seconds = perf_counter() - total_start
+            diagnostics.extra["used_fitted_inputs"] = not supplied_inputs
+            self.last_diagnostics_ = diagnostics.copy()
+        else:
+            self.last_diagnostics_ = None
         return path_orig, res.score
 
     def predict_weighted_reference(

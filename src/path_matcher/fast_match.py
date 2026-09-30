@@ -27,14 +27,19 @@ Notes
 """
 
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Any, Callable, Dict, Hashable, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
+import uuid
+import warnings
 
 import numpy as np
 
 try:  # package import
+    from .diagnostics import MatchDiagnostics
     from .tree_data import TreeData
     from .igraph_io import igraph_to_treedata
 except Exception:  # loose-file import
+    from diagnostics import MatchDiagnostics  # type: ignore
     from tree_data import TreeData  # type: ignore
     from igraph_io import igraph_to_treedata  # type: ignore
 
@@ -75,6 +80,16 @@ class EncodedTreeOverlap:
 
 
 EncodedTree = Union[EncodedTreeEquality, EncodedTreeOverlap]
+
+
+def _unseen_token_message(count: int) -> str:
+    noun = "token" if int(count) == 1 else "tokens"
+    return (
+        f"FastLabelEncoder dropped {int(count)} unseen label {noun}; unseen labels cannot "
+        "contribute to matching. For corpus-wide matching, fit the encoder on every tree "
+        "first, for example `matcher.fit_encoder(all_trees)`, then call "
+        "`matcher.encode_tree(tree)` or `matcher.prepare_tree(tree)`."
+    )
 
 
 def _looks_like_treedata(x: Any) -> bool:
@@ -219,10 +234,23 @@ class FastLabelEncoder:
         self.id_to_token: List[Hashable] = []
         self.weight_by_id: Optional[np.ndarray] = None
         self._fitted = False
+        self._fingerprint_uid = uuid.uuid4().hex
+        self._fit_generation = 0
 
     @property
     def is_fitted(self) -> bool:
         return self._fitted
+
+    @property
+    def fingerprint(self) -> Tuple[str, int]:
+        """Runtime identity of the current fitted token-id mapping.
+
+        The generation increases whenever the encoder is refitted.  Prepared
+        sparse trees use this inexpensive token to reject accidental mixing of
+        incompatible integer encodings.
+        """
+
+        return self._fingerprint_uid, int(self._fit_generation)
 
     def _iter_tokens_from_label(self, label: Any) -> Iterable[Hashable]:
         if self.mode == "equality":
@@ -248,6 +276,7 @@ class FastLabelEncoder:
             [float(self.token_weights.get(tok, self.default_weight)) for tok in id_to_token],
             dtype=np.float32,
         )
+        self._fit_generation += 1
         self._fitted = True
         return self
 
@@ -258,6 +287,7 @@ class FastLabelEncoder:
     def transform_tree(self, tree: TreeData) -> EncodedTree:
         self._check_fitted()
         n = tree.n
+        unseen_tokens: Dict[Hashable, None] = {}
         if self.mode == "equality":
             ids = np.full(n, -1, dtype=np.int32)
             for i, lab in enumerate(tree.label):
@@ -267,6 +297,14 @@ class FastLabelEncoder:
                 tid = self.token_to_id.get(tok)
                 if tid is not None:
                     ids[i] = np.int32(tid)
+                else:
+                    unseen_tokens[tok] = None
+            if unseen_tokens:
+                warnings.warn(
+                    _unseen_token_message(len(unseen_tokens)),
+                    UserWarning,
+                    stacklevel=2,
+                )
             return EncodedTreeEquality(tree=tree, label_ids=ids)
 
         offsets = np.zeros(n + 1, dtype=np.int32)
@@ -274,9 +312,22 @@ class FastLabelEncoder:
         for i, lab in enumerate(tree.label):
             toks = _normalize_overlap_label(lab, self.label_getter)
             if toks:
-                ids_here = sorted({self.token_to_id[tok] for tok in toks if tok in self.token_to_id})
+                ids_here_set = set()
+                for tok in toks:
+                    tid = self.token_to_id.get(tok)
+                    if tid is None:
+                        unseen_tokens[tok] = None
+                    else:
+                        ids_here_set.add(tid)
+                ids_here = sorted(ids_here_set)
                 flat.extend(ids_here)
             offsets[i + 1] = np.int32(len(flat))
+        if unseen_tokens:
+            warnings.warn(
+                _unseen_token_message(len(unseen_tokens)),
+                UserWarning,
+                stacklevel=2,
+            )
         flat_arr = np.asarray(flat, dtype=np.int32)
         return EncodedTreeOverlap(tree=tree, offsets=offsets, flat_token_ids=flat_arr)
 
@@ -696,21 +747,42 @@ def align_trees_fast_encoded(
     weight_by_id: np.ndarray,
     return_matrices: bool = False,
     keep_zero_weight_matches: bool = False,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> FastAlignmentResult:
+    total_start = perf_counter()
+    n, m = G.tree.n, H.tree.n
+
     if isinstance(G, EncodedTreeEquality) and isinstance(H, EncodedTreeEquality):
+        if diagnostics is not None:
+            diagnostics.reset(algorithm="fast_dense_equality", n_g=n, n_h=m)
+            diagnostics.dp_cells_computed = n * m
+            diagnostics.node_pair_score_evaluations = n * m
+        preprocessing_start = perf_counter()
         max_id = -1
         if G.label_ids.size:
             max_id = max(max_id, int(np.max(G.label_ids)))
         if H.label_ids.size:
             max_id = max(max_id, int(np.max(H.label_ids)))
         weight_arr = _validate_weight_by_id(weight_by_id, max_id)
+        parentG = np.asarray(G.tree.parent, dtype=np.int32)
+        labelG = np.asarray(G.label_ids, dtype=np.int32)
+        parentH = np.asarray(H.tree.parent, dtype=np.int32)
+        labelH = np.asarray(H.label_ids, dtype=np.int32)
+        if diagnostics is not None:
+            diagnostics.preprocessing_seconds = perf_counter() - preprocessing_start
+
+        search_start = perf_counter()
         A, C, U_star, V_star, score = _dp_equality_numba(
-            np.asarray(G.tree.parent, dtype=np.int32),
-            np.asarray(G.label_ids, dtype=np.int32),
-            np.asarray(H.tree.parent, dtype=np.int32),
-            np.asarray(H.label_ids, dtype=np.int32),
+            parentG,
+            labelG,
+            parentH,
+            labelH,
             weight_arr,
         )
+        if diagnostics is not None:
+            diagnostics.search_seconds = perf_counter() - search_start
+
+        traceback_start = perf_counter()
         path = _traceback_equality_scored(
             G.tree.parent,
             G.label_ids,
@@ -722,26 +794,50 @@ def align_trees_fast_encoded(
             V_star,
             keep_zero_weight_matches=keep_zero_weight_matches,
         )
+        if diagnostics is not None:
+            diagnostics.traceback_seconds = perf_counter() - traceback_start
+            diagnostics.result_score = float(score)
+            diagnostics.result_length = len(path)
+            diagnostics.total_seconds = perf_counter() - total_start
         if return_matrices:
             return FastAlignmentResult(path_internal=path, score=float(score), end_internal=(U_star - 1, V_star - 1), A=A, C=C)
         return FastAlignmentResult(path_internal=path, score=float(score), end_internal=(U_star - 1, V_star - 1))
 
     if isinstance(G, EncodedTreeOverlap) and isinstance(H, EncodedTreeOverlap):
+        if diagnostics is not None:
+            diagnostics.reset(algorithm="fast_dense_overlap", n_g=n, n_h=m)
+            diagnostics.dp_cells_computed = n * m
+            diagnostics.node_pair_score_evaluations = n * m
+        preprocessing_start = perf_counter()
         max_id = -1
         if G.flat_token_ids.size:
             max_id = max(max_id, int(np.max(G.flat_token_ids)))
         if H.flat_token_ids.size:
             max_id = max(max_id, int(np.max(H.flat_token_ids)))
         weight_arr = _validate_weight_by_id(weight_by_id, max_id)
+        parentG = np.asarray(G.tree.parent, dtype=np.int32)
+        offsetsG = np.asarray(G.offsets, dtype=np.int32)
+        tokensG = np.asarray(G.flat_token_ids, dtype=np.int32)
+        parentH = np.asarray(H.tree.parent, dtype=np.int32)
+        offsetsH = np.asarray(H.offsets, dtype=np.int32)
+        tokensH = np.asarray(H.flat_token_ids, dtype=np.int32)
+        if diagnostics is not None:
+            diagnostics.preprocessing_seconds = perf_counter() - preprocessing_start
+
+        search_start = perf_counter()
         A, C, U_star, V_star, score = _dp_overlap_numba(
-            np.asarray(G.tree.parent, dtype=np.int32),
-            np.asarray(G.offsets, dtype=np.int32),
-            np.asarray(G.flat_token_ids, dtype=np.int32),
-            np.asarray(H.tree.parent, dtype=np.int32),
-            np.asarray(H.offsets, dtype=np.int32),
-            np.asarray(H.flat_token_ids, dtype=np.int32),
+            parentG,
+            offsetsG,
+            tokensG,
+            parentH,
+            offsetsH,
+            tokensH,
             weight_arr,
         )
+        if diagnostics is not None:
+            diagnostics.search_seconds = perf_counter() - search_start
+
+        traceback_start = perf_counter()
         path = _traceback_overlap_scored(
             G.tree.parent,
             G.offsets,
@@ -755,6 +851,11 @@ def align_trees_fast_encoded(
             V_star,
             keep_zero_weight_matches=keep_zero_weight_matches,
         )
+        if diagnostics is not None:
+            diagnostics.traceback_seconds = perf_counter() - traceback_start
+            diagnostics.result_score = float(score)
+            diagnostics.result_length = len(path)
+            diagnostics.total_seconds = perf_counter() - total_start
         if return_matrices:
             return FastAlignmentResult(path_internal=path, score=float(score), end_internal=(U_star - 1, V_star - 1), A=A, C=C)
         return FastAlignmentResult(path_internal=path, score=float(score), end_internal=(U_star - 1, V_star - 1))
@@ -807,6 +908,7 @@ class FastTreePathMatcher:
         strict_tree: bool = True,
         encoder: Optional[FastLabelEncoder] = None,
         keep_zero_weight_matches: bool = False,
+        collect_diagnostics: bool = False,
     ) -> None:
         self.mode = mode.lower().strip()
         if self.mode not in {"equality", "overlap"}:
@@ -819,6 +921,7 @@ class FastTreePathMatcher:
         self.ts_field = ts_field
         self.strict_tree = strict_tree
         self.keep_zero_weight_matches = bool(keep_zero_weight_matches)
+        self.collect_diagnostics = bool(collect_diagnostics)
         if encoder is not None and encoder.mode != self.mode:
             raise ValueError(f"encoder.mode={encoder.mode!r} does not match matcher mode={self.mode!r}")
         self.encoder = encoder or FastLabelEncoder(
@@ -831,6 +934,8 @@ class FastTreePathMatcher:
         self.treeH_: Optional[TreeData] = None
         self.encG_: Optional[EncodedTree] = None
         self.encH_: Optional[EncodedTree] = None
+        self.last_diagnostics_: Optional[MatchDiagnostics] = None
+        self.last_fit_diagnostics_: Optional[MatchDiagnostics] = None
 
     def _to_tree(self, G: Any) -> TreeData:
         return _as_treedata(
@@ -853,6 +958,8 @@ class FastTreePathMatcher:
         return self.encoder.transform_tree(tree)
 
     def fit(self, G: Any, H: Any) -> "FastTreePathMatcher":
+        start = perf_counter()
+        self.last_fit_diagnostics_ = None
         treeG = self._to_tree(G)
         treeH = self._to_tree(H)
         self.treeG_ = treeG
@@ -861,9 +968,19 @@ class FastTreePathMatcher:
             self.encoder.fit_from_trees([treeG, treeH])
         self.encG_ = self.encoder.transform_tree(treeG)
         self.encH_ = self.encoder.transform_tree(treeH)
+        if self.collect_diagnostics:
+            diag = MatchDiagnostics(algorithm="fast_dense_fit", n_g=treeG.n, n_h=treeH.n)
+            diag.input_preprocessing_seconds = perf_counter() - start
+            diag.total_seconds = diag.input_preprocessing_seconds
+            self.last_fit_diagnostics_ = diag
+        else:
+            self.last_fit_diagnostics_ = None
         return self
 
     def predict(self, G: Any = None, H: Any = None) -> Tuple[List[Tuple[int, int]], float]:
+        total_start = perf_counter()
+        self.last_diagnostics_ = None
+        input_start = total_start
         if G is not None or H is not None:
             if G is None or H is None:
                 raise ValueError("Either provide both G and H, or provide neither.")
@@ -881,12 +998,22 @@ class FastTreePathMatcher:
             encG = self.encG_
             encH = self.encH_
 
+        input_seconds = perf_counter() - input_start if (G is not None or H is not None) else 0.0
+        diagnostics = MatchDiagnostics() if self.collect_diagnostics else None
+
         res = align_trees_fast_encoded(
             encG,
             encH,
             weight_by_id=self.encoder.weight_by_id,  # type: ignore[arg-type]
             keep_zero_weight_matches=self.keep_zero_weight_matches,
+            diagnostics=diagnostics,
         )
+        if diagnostics is not None:
+            diagnostics.input_preprocessing_seconds += input_seconds
+            diagnostics.total_seconds = perf_counter() - total_start
+            self.last_diagnostics_ = diagnostics.copy()
+        else:
+            self.last_diagnostics_ = None
         path_orig = [
             (int(treeG.orig_index[u]), int(treeH.orig_index[v]))  # type: ignore[union-attr]
             for (u, v) in res.path_internal
@@ -894,12 +1021,21 @@ class FastTreePathMatcher:
         return path_orig, res.score
 
     def predict_encoded(self, G: EncodedTree, H: EncodedTree) -> Tuple[List[Tuple[int, int]], float]:
+        total_start = perf_counter()
+        self.last_diagnostics_ = None
+        diagnostics = MatchDiagnostics() if self.collect_diagnostics else None
         res = align_trees_fast_encoded(
             G,
             H,
             weight_by_id=self.encoder.weight_by_id,  # type: ignore[arg-type]
             keep_zero_weight_matches=self.keep_zero_weight_matches,
+            diagnostics=diagnostics,
         )
+        if diagnostics is not None:
+            diagnostics.total_seconds = perf_counter() - total_start
+            self.last_diagnostics_ = diagnostics.copy()
+        else:
+            self.last_diagnostics_ = None
         path_orig = [
             (int(G.tree.orig_index[u]), int(H.tree.orig_index[v]))
             for (u, v) in res.path_internal

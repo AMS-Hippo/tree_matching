@@ -1,0 +1,252 @@
+{
+  "suite_name": "path_match_algorithm_matrix_v1",
+  "repeats": 3,
+  "warmup": 1,
+  "quality_floor": 0.99,
+  "exact_score_abs_tol": 1e-05,
+  "exact_score_rel_tol": 1e-06,
+  "algorithm_order_seed": 20260928,
+  "execution_mode": "isolated",
+  "timeout_seconds": 300,
+  "thread_count": 1,
+  "max_dense_cells": 5000000,
+  "max_sparse_posting_hits": 5000000,
+  "algorithms": [
+    "exact_dense",
+    "fast_dense",
+    "sparse_closure",
+    "sparse_chain",
+    "fast_sparse",
+    "beam_local",
+    "beam_local_capped",
+    "beam_partial_score"
+  ],
+  "regimes": [
+    {
+      "name": "tiny_generic_dense",
+      "n_g": 64,
+      "n_h": 64,
+      "shape_g": "medium",
+      "shape_h": "medium",
+      "comparison": "tree_tree",
+      "alphabet_size": 8,
+      "symbol_distribution": "uniform",
+      "symbols_per_node": {
+        "kind": "categorical",
+        "values": [
+          2,
+          3
+        ],
+        "probs": [
+          0.7,
+          0.3
+        ]
+      },
+      "score_mode": "jaccard",
+      "weight_mode": "uniform",
+      "planted_length": 10,
+      "p_obs_g": 0.85,
+      "p_obs_h": 0.85,
+      "n_instances": 3,
+      "seed": 1101,
+      "expected_algorithm": "exact_dense",
+      "notes": "The table is tiny and the score is generic, so sparse indexing overhead should not pay."
+    },
+    {
+      "name": "dense_common_overlap",
+      "n_g": 600,
+      "n_h": 600,
+      "shape_g": "medium",
+      "shape_h": "medium",
+      "comparison": "tree_tree",
+      "alphabet_size": 8,
+      "symbol_distribution": "uniform",
+      "symbols_per_node": {
+        "kind": "categorical",
+        "values": [
+          3,
+          4,
+          5
+        ],
+        "probs": [
+          0.5,
+          0.35,
+          0.15
+        ]
+      },
+      "score_mode": "overlap",
+      "weight_mode": "uniform",
+      "planted_length": 12,
+      "n_instances": 3,
+      "seed": 1102,
+      "expected_algorithm": "fast_dense",
+      "notes": "Almost every pair shares a token; the specialized dense Numba kernel should dominate sparse enumeration."
+    },
+    {
+      "name": "generic_sparse_jaccard",
+      "n_g": 800,
+      "n_h": 800,
+      "shape_g": "medium",
+      "shape_h": "medium",
+      "comparison": "tree_tree",
+      "alphabet_size": 1000,
+      "symbol_distribution": "uniform",
+      "symbols_per_node": {
+        "kind": "categorical",
+        "values": [
+          1,
+          2
+        ],
+        "probs": [
+          0.8,
+          0.2
+        ]
+      },
+      "score_mode": "jaccard",
+      "weight_mode": "inverse_sqrt",
+      "planted_length": 14,
+      "planted_token_policy": "tail",
+      "p_obs_g": 0.9,
+      "p_obs_h": 0.9,
+      "n_instances": 3,
+      "seed": 1103,
+      "expected_algorithm": "sparse_chain",
+      "notes": "Generic score with an exact token blocking rule and very few positive node pairs."
+    },
+    {
+      "name": "large_sparse_overlap",
+      "n_g": 5000,
+      "n_h": 5000,
+      "shape_g": "medium",
+      "shape_h": "medium",
+      "comparison": "tree_tree",
+      "alphabet_size": 3000,
+      "symbol_distribution": "uniform",
+      "symbols_per_node": 3,
+      "score_mode": "overlap",
+      "weight_mode": "uniform",
+      "planted_length": 16,
+      "n_instances": 2,
+      "seed": 1104,
+      "expected_algorithm": "fast_sparse",
+      "notes": "Sparse multi-token overlap favors integerized posting joins while the dense table exceeds the configured work budget."
+    },
+    {
+      "name": "narrow_tree_to_path",
+      "n_g": 5000,
+      "n_h": 120,
+      "shape_g": "narrow",
+      "shape_h": "path",
+      "comparison": "tree_path",
+      "depth_g": 150,
+      "alphabet_size": 20,
+      "symbol_distribution": "uniform",
+      "symbols_per_node": {
+        "kind": "categorical",
+        "values": [
+          1,
+          2
+        ],
+        "probs": [
+          0.75,
+          0.25
+        ]
+      },
+      "score_mode": "jaccard",
+      "weight_mode": "uniform",
+      "planted_length": 24,
+      "p_obs_g": 0.9,
+      "p_obs_h": 0.9,
+      "n_instances": 3,
+      "seed": 1105,
+      "expected_algorithm": "beam_local_capped",
+      "notes": "A narrow observed tree and short template path favor local transitions; the cap is expected to remove occasional high-degree bursts."
+    },
+    {
+      "name": "wide_shallow_tree_pair",
+      "n_g": 450,
+      "n_h": 450,
+      "shape_g": "wide",
+      "shape_h": "wide",
+      "comparison": "tree_tree",
+      "alphabet_size": 12,
+      "symbol_distribution": "zipf",
+      "zipf_exponent": 1.4,
+      "symbols_per_node": {
+        "kind": "categorical",
+        "values": [
+          2,
+          3
+        ],
+        "probs": [
+          0.7,
+          0.3
+        ]
+      },
+      "score_mode": "jaccard",
+      "weight_mode": "inverse_sqrt",
+      "planted_length": 7,
+      "planted_token_policy": "reserved",
+      "reserved_token_weight": 8.0,
+      "n_instances": 3,
+      "seed": 1106,
+      "expected_algorithm": "beam_local_capped",
+      "notes": "Shallow but very wide trees test whether a child cap controls the local cross product.",
+      "planted_distinct_tokens": 7
+    },
+    {
+      "name": "deep_rare_anchor_stress",
+      "n_g": 12000,
+      "n_h": 12000,
+      "shape_g": "medium",
+      "shape_h": "medium",
+      "comparison": "tree_tree",
+      "depth_g": 180,
+      "depth_h": 180,
+      "alphabet_size": 30,
+      "symbol_distribution": "zipf",
+      "zipf_exponent": 1.5,
+      "symbols_per_node": 1,
+      "score_mode": "equality",
+      "weight_mode": "inverse_sqrt",
+      "planted_length": 14,
+      "planted_token_policy": "reserved",
+      "reserved_token_weight": 1000.0,
+      "p_obs_g": 1.0,
+      "p_obs_h": 1.0,
+      "planted_path_selection": "random_leaf",
+      "n_instances": 2,
+      "seed": 1107,
+      "expected_algorithm": "beam_partial_score",
+      "notes": "Rare high-weight anchors are far apart in deep trees; dense and exhaustive sparse methods exceed the configured work limits.",
+      "planted_distinct_tokens": 14
+    },
+    {
+      "name": "rare_anchor_oracle",
+      "n_g": 1300,
+      "n_h": 1300,
+      "shape_g": "medium",
+      "shape_h": "medium",
+      "comparison": "tree_tree",
+      "depth_g": 160,
+      "depth_h": 160,
+      "alphabet_size": 30,
+      "symbol_distribution": "zipf",
+      "zipf_exponent": 1.5,
+      "symbols_per_node": 1,
+      "score_mode": "equality",
+      "weight_mode": "inverse_sqrt",
+      "planted_length": 14,
+      "planted_token_policy": "reserved",
+      "reserved_token_weight": 1000.0,
+      "p_obs_g": 1.0,
+      "p_obs_h": 1.0,
+      "planted_path_selection": "random_leaf",
+      "n_instances": 3,
+      "seed": 20267991,
+      "expected_algorithm": "fast_dense",
+      "notes": "Exact-oracle companion to the large rare-anchor stress regime. The score-only partial beam should preserve the delayed rare anchors and remain above the 99% quality floor, while local beams may prune the relevant branch; at this smaller scale the specialized dense exact method is still expected to be fastest.",
+      "planted_distinct_tokens": 14
+    }
+  ]
+}

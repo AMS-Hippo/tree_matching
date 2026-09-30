@@ -22,14 +22,20 @@ of candidate edges you generate.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 import heapq
 import math
 import numpy as np
 
+from .diagnostics import MatchDiagnostics
 from .needleman_wunsch_tree import AlignmentResult
-from .sparse_preprocess import PreprocessedTree, _UINT64_MAX
+from .sparse_preprocess import (
+    PreprocessedTree,
+    _UINT64_MAX,
+    warn_if_weight_override_differs,
+)
 from .candidates import select_subset
 
 
@@ -39,7 +45,7 @@ class SparseCandidateConfig:
     Controls candidate generation for sparse alignment.
     """
     # Key-based candidates:
-    stop_key_threshold: int = 10_000   # ignore keys with freq > threshold in either tree
+    stop_key_threshold: Optional[int] = 10_000   # ignore keys with freq > threshold in either tree
     max_keys_per_node: Optional[int] = 4  # per-node: only use this many (rarest) blocking keys
     max_candidates_per_key: Optional[int] = 500  # cap |bucket_H(key)| used for any one key
     max_candidates_per_u: Optional[int] = 2000   # final per-u cap after union across keys
@@ -50,6 +56,26 @@ class SparseCandidateConfig:
     use_subtree_sketch_keys: bool = False
     sketch_keys_per_node: int = 4              # use up to this many sketch hashes per node
     max_candidates_per_sketch_key: Optional[int] = 500  # cap per sketch hash bucket
+
+    @classmethod
+    def exhaustive(cls) -> "SparseCandidateConfig":
+        """
+        Use every pair sharing at least one blocking key.
+
+        This removes all candidate-generation caps and disables sketch-only
+        additions.  The resulting candidate set is globally complete only when
+        the blocking keys themselves cover every positive-score label pair and
+        preprocessing did not truncate ``key_to_nodes``.
+        """
+        return cls(
+            stop_key_threshold=None,
+            max_keys_per_node=None,
+            max_candidates_per_key=None,
+            max_candidates_per_u=None,
+            candidate_select_mode="first",
+            seed=0,
+            use_subtree_sketch_keys=False,
+        )
 
 
 def _select_rarest_keys(
@@ -114,7 +140,7 @@ def generate_sparse_candidates(
             cH = H.key_counts.get(k, 0)
             if cH == 0:
                 continue
-            if max(cG, cH) > cfg.stop_key_threshold:
+            if cfg.stop_key_threshold is not None and max(cG, cH) > cfg.stop_key_threshold:
                 continue
 
             vs = H.key_to_nodes.get(k, [])
@@ -174,6 +200,7 @@ def align_trees_sparse_candidates(
     cfg: SparseCandidateConfig = SparseCandidateConfig(),
     w: Optional[Any] = None,
     prefer_match_on_tie: bool = True,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> AlignmentResult:
     """
     Sparse-candidate DP alignment.
@@ -185,7 +212,10 @@ def align_trees_sparse_candidates(
         If None, we build candidates using generate_sparse_candidates(G,H,cfg).
     w:
         Weight function to score matches. If None, uses G.w (the weight used to build keys).
-        Must be callable w(label_u, label_v)->float.
+        Must be callable w(label_u, label_v)->float. If candidates are generated
+        internally and this differs from the preprocessing weight, matching
+        continues with a warning because the old blocking keys may omit positive
+        pairs under the new score.
     prefer_match_on_tie:
         If True, tie-break like the paper: prefer option 3 over 2 over 1.
         If False, prefer skipping on ties (often avoids long 0-weight match paths).
@@ -194,14 +224,30 @@ def align_trees_sparse_candidates(
     -------
     AlignmentResult (path_internal, score, end_internal).
     """
-    if candidates is None:
-        candidates = generate_sparse_candidates(G, H, cfg=cfg)
+    total_start = perf_counter()
+    n, m = G.tree.n, H.tree.n
+    if diagnostics is not None:
+        diagnostics.reset(algorithm="sparse_closure", n_g=n, n_h=m)
+        diagnostics.candidate_pairs_generated = 0
+        diagnostics.positive_candidate_pairs = 0
+        diagnostics.dp_cells_computed = 0
 
+    candidate_start = perf_counter()
+    generated_internally = candidates is None
+    if candidates is None:
+        warn_if_weight_override_differs(G, H, w, stacklevel=3)
+        candidates = generate_sparse_candidates(G, H, cfg=cfg)
+    if diagnostics is not None:
+        diagnostics.candidate_generation_seconds = (
+            perf_counter() - candidate_start if generated_internally else 0.0
+        )
+        diagnostics.candidate_pairs_generated = sum(len(row) for row in candidates)
+
+    preprocessing_start = perf_counter()
     w_fn = G.w if w is None else w
     if not callable(w_fn):
         raise TypeError("w must be callable")
 
-    n, m = G.tree.n, H.tree.n
     labelsG = G.tree.label
     labelsH = H.tree.label
 
@@ -218,6 +264,10 @@ def align_trees_sparse_candidates(
     C_rows: List[Dict[int, int]] = [dict() for _ in range(n + 1)]
     A_rows[0][0] = 0.0
     C_rows[0][0] = 0
+
+    if diagnostics is not None:
+        diagnostics.preprocessing_seconds = perf_counter() - preprocessing_start
+        diagnostics.extra["candidates_generated_internally"] = generated_internally
 
     best_score: float = 0.0
     best_U: int = 0
@@ -271,8 +321,15 @@ def align_trees_sparse_candidates(
             opt2 = A_rows[uU][aV]
             base = A_rows[aU][aV]
 
+            if diagnostics is not None:
+                diagnostics.dp_cells_computed += 1
+
             if vV in cand_shift[u]:
                 w_uv = float(w_fn(labelsG[u], labelsH[v]))
+                if diagnostics is not None:
+                    diagnostics.node_pair_score_evaluations += 1
+                    if w_uv > 0.0:
+                        diagnostics.positive_candidate_pairs += 1
                 opt3 = w_uv + base
             else:
                 opt3 = -math.inf
@@ -289,13 +346,24 @@ def align_trees_sparse_candidates(
         return A_rows[U][V]
 
     # Drive computation by ensuring all candidate cells (and their closures) are computed.
+    search_start = perf_counter()
     for u in range(n):
         U = u + 1
         for v in candidates[u]:
             V = int(v) + 1
             ensure_cell(U, V)
 
+    if diagnostics is not None:
+        diagnostics.search_seconds = perf_counter() - search_start
+        diagnostics.extra["stored_score_cells"] = sum(len(row) for row in A_rows)
+
+    traceback_start = perf_counter()
     if best_U == 0 or best_V == 0:
+        if diagnostics is not None:
+            diagnostics.traceback_seconds = perf_counter() - traceback_start
+            diagnostics.result_score = 0.0
+            diagnostics.result_length = 0
+            diagnostics.total_seconds = perf_counter() - total_start
         return AlignmentResult(path_internal=[], score=0.0, end_internal=(0, 0), A=None, C=None)
 
     # Traceback from best cell.
@@ -320,4 +388,9 @@ def align_trees_sparse_candidates(
             raise RuntimeError(f"Invalid traceback choice {choice} at (U,V)=({U},{V})")
 
     path_rev.reverse()
+    if diagnostics is not None:
+        diagnostics.traceback_seconds = perf_counter() - traceback_start
+        diagnostics.result_score = float(best_score)
+        diagnostics.result_length = len(path_rev)
+        diagnostics.total_seconds = perf_counter() - total_start
     return AlignmentResult(path_internal=path_rev, score=float(best_score), end_internal=(best_U - 1, best_V - 1), A=None, C=None)

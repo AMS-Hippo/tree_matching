@@ -1,0 +1,121 @@
+{
+  "suite_name": "path_match_throughput_quick",
+  "repeats": 1,
+  "warmup_pairs": 1,
+  "validation_pairs": 3,
+  "diagnostic_pairs": 2,
+  "quality_floor": 0.99,
+  "exact_score_abs_tol": 1e-05,
+  "exact_score_rel_tol": 1e-06,
+  "algorithm_order_seed": 20260928,
+  "execution_mode": "in_process",
+  "timeout_seconds": null,
+  "thread_count": null,
+  "max_total_generic_dense_cells": 2000000,
+  "max_total_fast_dense_cells": 2000000,
+  "max_total_sparse_posting_hits": 2000000,
+  "algorithms": [
+    "exact_dense",
+    "fast_dense",
+    "sparse_closure",
+    "sparse_chain",
+    "fast_sparse",
+    "beam_local",
+    "beam_local_capped",
+    "beam_partial_score"
+  ],
+  "regimes": [
+    {
+      "name": "throughput_equality_smoke",
+      "n_queries": 4,
+      "n_templates": 3,
+      "n_g": 60,
+      "n_h": 14,
+      "shape_g": "narrow",
+      "shape_h": "path",
+      "comparison": "tree_path",
+      "alphabet_size": 10,
+      "symbol_distribution": "uniform",
+      "symbols_per_node": 1,
+      "score_mode": "equality",
+      "weight_mode": "uniform",
+      "planted_length": 7,
+      "planted_token_policy": "background",
+      "p_obs_g": 0.9,
+      "p_obs_h": 1.0,
+      "planted_path_selection": "random_leaf",
+      "seed": 3101,
+      "expected_algorithm": "fast_dense",
+      "notes": "Tiny equality tree-to-path workload for wiring and prepared-API checks."
+    },
+    {
+      "name": "throughput_overlap_smoke",
+      "n_queries": 3,
+      "n_templates": 3,
+      "n_g": 70,
+      "n_h": 16,
+      "shape_g": "medium",
+      "shape_h": "path",
+      "comparison": "tree_path",
+      "alphabet_size": 60,
+      "symbol_distribution": "zipf",
+      "zipf_exponent": 1.2,
+      "symbols_per_node": {
+        "kind": "categorical",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "probs": [
+          0.55,
+          0.35,
+          0.1
+        ]
+      },
+      "score_mode": "overlap",
+      "weight_mode": "inverse_sqrt",
+      "planted_length": 8,
+      "planted_token_policy": "tail",
+      "p_obs_g": 0.9,
+      "p_obs_h": 1.0,
+      "planted_path_selection": "random_leaf",
+      "seed": 3102,
+      "expected_algorithm": "fast_sparse",
+      "notes": "Tiny sparse multi-token overlap workload."
+    },
+    {
+      "name": "throughput_jaccard_smoke",
+      "n_queries": 3,
+      "n_templates": 2,
+      "n_g": 45,
+      "n_h": 12,
+      "shape_g": "medium",
+      "shape_h": "path",
+      "comparison": "tree_path",
+      "alphabet_size": 80,
+      "symbol_distribution": "uniform",
+      "symbols_per_node": {
+        "kind": "categorical",
+        "values": [
+          1,
+          2
+        ],
+        "probs": [
+          0.45,
+          0.55
+        ]
+      },
+      "score_mode": "jaccard",
+      "weight_mode": "uniform",
+      "planted_length": 6,
+      "planted_token_policy": "tail",
+      "p_obs_g": 0.9,
+      "p_obs_h": 1.0,
+      "planted_path_selection": "random_leaf",
+      "seed": 3103,
+      "expected_algorithm": "sparse_chain",
+      "notes": "Tiny generic soft-score workload; specialized fast matchers are intentionally incompatible."
+    }
+  ]
+}

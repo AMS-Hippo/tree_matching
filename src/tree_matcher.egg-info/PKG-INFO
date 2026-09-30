@@ -1,0 +1,51 @@
+Metadata-Version: 2.4
+Name: tree_matcher
+Version: 0.1.0
+Summary: Tree matching, embedding, subgraph matching, and exemplar extraction utilities.
+Requires-Python: >=3.10
+Requires-Dist: numpy>=1.23
+Requires-Dist: pandas>=1.5
+Requires-Dist: scipy>=1.9
+Requires-Dist: scikit-learn>=1.1
+Requires-Dist: igraph>=0.11
+Provides-Extra: speedups
+Requires-Dist: numba>=0.58; extra == "speedups"
+Provides-Extra: viz
+Requires-Dist: matplotlib>=3.7; extra == "viz"
+Requires-Dist: seaborn>=0.12; extra == "viz"
+Provides-Extra: embedding
+Requires-Dist: umap-learn>=0.5; extra == "embedding"
+Requires-Dist: hdbscan>=0.8; extra == "embedding"
+Requires-Dist: pynndescent>=0.5; extra == "embedding"
+Provides-Extra: neural
+Requires-Dist: torch>=2.0; extra == "neural"
+Provides-Extra: benchmark
+Requires-Dist: PyYAML>=6.0; extra == "benchmark"
+Provides-Extra: poa
+Requires-Dist: pyabpoa>=1.5; extra == "poa"
+Provides-Extra: notebooks
+Requires-Dist: ipykernel>=6.0; extra == "notebooks"
+Requires-Dist: notebook>=7.0; extra == "notebooks"
+Requires-Dist: matplotlib>=3.7; extra == "notebooks"
+Requires-Dist: seaborn>=0.12; extra == "notebooks"
+Requires-Dist: numba>=0.58; extra == "notebooks"
+Requires-Dist: PyYAML>=6.0; extra == "notebooks"
+Requires-Dist: umap-learn>=0.5; extra == "notebooks"
+Requires-Dist: hdbscan>=0.8; extra == "notebooks"
+Requires-Dist: pynndescent>=0.5; extra == "notebooks"
+Requires-Dist: torch>=2.0; extra == "notebooks"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Provides-Extra: all
+Requires-Dist: numba>=0.58; extra == "all"
+Requires-Dist: matplotlib>=3.7; extra == "all"
+Requires-Dist: seaborn>=0.12; extra == "all"
+Requires-Dist: umap-learn>=0.5; extra == "all"
+Requires-Dist: hdbscan>=0.8; extra == "all"
+Requires-Dist: pynndescent>=0.5; extra == "all"
+Requires-Dist: torch>=2.0; extra == "all"
+Requires-Dist: PyYAML>=6.0; extra == "all"
+Requires-Dist: pyabpoa>=1.5; extra == "all"
+Requires-Dist: ipykernel>=6.0; extra == "all"
+Requires-Dist: notebook>=7.0; extra == "all"
+Requires-Dist: pytest>=8.0; extra == "all"

@@ -1,4 +1,4 @@
-"""Tests for the partial-matching beam search implementation."""
+"""Correctness tests for the two beam-search state spaces."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from path_matcher.beam_align import align_trees_beam
+from path_matcher.local_beam_align import align_trees_local_beam
 from path_matcher.matcher import TreePathMatcher
 from path_matcher.needleman_wunsch_tree import align_trees_algorithm1
 from path_matcher.tree_data import TreeData
@@ -35,6 +36,17 @@ def _assert_valid_matching(G, H, pairs):
     for (u0, v0), (u1, v1) in zip(pairs, pairs[1:]):
         assert _is_strict_descendant(G.parent, u0, u1)
         assert _is_strict_descendant(H.parent, v0, v1)
+
+
+def _matching_score(G, H, pairs, w):
+    return sum(float(w(G.label[u], H.label[v])) for u, v in pairs)
+
+
+def _random_tree(rng, n, n_labels=4):
+    parent = [-1]
+    parent.extend(int(rng.integers(0, node)) for node in range(1, n))
+    labels = [int(x) for x in rng.integers(0, n_labels, size=n)]
+    return _tree(parent, labels)
 
 
 def test_partial_beam_default_finds_ordered_chain_matches():
@@ -73,6 +85,91 @@ def test_partial_beam_exhaustive_settings_match_exact_score_on_small_tree():
 
     assert beam.score == exact.score
     _assert_valid_matching(G, H, beam.path_internal)
+
+
+def test_partial_beam_exhaustive_randomized_matches_exact_dp():
+    """Wide, uncapped Algorithm 7 agrees with exact DP on random small inputs."""
+    rng = np.random.default_rng(20260924)
+
+    for _ in range(100):
+        G = _random_tree(rng, int(rng.integers(1, 8)))
+        H = _random_tree(rng, int(rng.integers(1, 8)))
+        weights = rng.integers(0, 4, size=(4, 4))
+
+        def w(a, b, weights=weights):
+            return float(weights[int(a), int(b)])
+
+        exact = align_trees_algorithm1(G, H, w=w, prefer_match_on_tie=False)
+        beam = align_trees_beam(
+            G,
+            H,
+            w=w,
+            beam_width=G.n * H.n,
+            expansion_width=None,
+            max_label_pair_scan=10_000,
+            max_label_pairs_per_expansion=None,
+            max_nodes_per_label_side=max(G.n, H.n),
+            candidate_select_mode="first",
+            random_fraction=0.0,
+            rarity_weight=0.0,
+            gap_penalty=0.0,
+            balance_penalty=0.0,
+            candidate_future_weight=0.0,
+            priority_future_weight=0.0,
+            seed=0,
+        )
+
+        assert beam.score == pytest.approx(exact.score)
+        _assert_valid_matching(G, H, beam.path_internal)
+        assert _matching_score(G, H, beam.path_internal, w) == pytest.approx(beam.score)
+
+
+def test_local_beam_exhaustive_randomized_matches_exact_dp():
+    """Algorithm 6 with all children and no effective beam pruning is exact."""
+    rng = np.random.default_rng(20260925)
+
+    for _ in range(100):
+        G = _random_tree(rng, int(rng.integers(1, 8)))
+        H = _random_tree(rng, int(rng.integers(1, 8)))
+        weights = rng.integers(0, 4, size=(4, 4))
+
+        def w(a, b, weights=weights):
+            return float(weights[int(a), int(b)])
+
+        exact = align_trees_algorithm1(G, H, w=w, prefer_match_on_tie=False)
+        beam = align_trees_local_beam(
+            G,
+            H,
+            w=w,
+            beam_width=(G.n + 1) * (H.n + 1),
+            child_cap=None,
+        )
+
+        assert beam.score == pytest.approx(exact.score)
+        _assert_valid_matching(G, H, beam.path_internal)
+        assert _matching_score(G, H, beam.path_internal, w) == pytest.approx(beam.score)
+
+
+def test_local_beam_capped_expansion_and_high_level_api():
+    G = _tree([-1, 0, 0], ["root-G", "first-G", "B"])
+    H = _tree([-1, 0, 0], ["root-H", "first-H", "B"])
+
+    capped = align_trees_local_beam(G, H, beam_width=100, child_cap=1)
+    full = align_trees_local_beam(G, H, beam_width=100, child_cap=None)
+
+    assert capped.path_internal == []
+    assert capped.score == 0.0
+    assert full.path_internal == [(2, 2)]
+    assert full.score == 1.0
+
+    matcher = TreePathMatcher(
+        method="beam_local",
+        beam_width=100,
+        beam_local_child_cap=None,
+    )
+    pairs, score = matcher.predict(G, H)
+    assert pairs == full.path_internal
+    assert score == full.score
 
 
 def test_partial_beam_priority_callable_is_used():

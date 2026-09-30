@@ -1,4 +1,5 @@
 from .matcher import TreePathMatcher
+from .diagnostics import MatchDiagnostics
 from .tree_data import TreeData
 from .igraph_io import igraph_to_treedata, validate_igraph_ordering
 
@@ -22,6 +23,7 @@ from .beam_align import (
     default_candidate_heuristic,
     default_beam_priority,
 )
+from .local_beam_align import align_trees_local_beam
 from .bucketable_weight import BucketableWeight, EqualityBucketWeight
 from .weight_wrappers import (
     make_bucketable_weight,
@@ -31,9 +33,24 @@ from .weight_wrappers import (
 )
 from .sparse_preprocess import PreprocessedTree, preprocess_treedata, preprocess_igraph
 from .sparse_align import SparseCandidateConfig, generate_sparse_candidates, align_trees_sparse_candidates
+from .sparse_chain import align_scored_sparse_chain, align_trees_sparse_chain
+from .fast_match import (
+    FastLabelEncoder,
+    FastTreePathMatcher,
+    EncodedTreeEquality,
+    EncodedTreeOverlap,
+)
+from .fast_sparse_match import (
+    FastSparsePreparedTree,
+    FastSparseTreePathMatcher,
+    prepare_fast_sparse_encoded,
+    generate_fast_sparse_scored_candidates,
+    align_trees_fast_sparse_prepared,
+)
 
 __all__ = [
     "TreePathMatcher",
+    "MatchDiagnostics",
     "TreeData",
     "igraph_to_treedata",
     "validate_igraph_ordering",
@@ -41,6 +58,7 @@ __all__ = [
     "align_tree_to_repeating_template",
     "align_trees_beam",
     "align_trees_beam_symmetric",
+    "align_trees_local_beam",
     "BeamHeuristicStats",
     "BeamCandidateContext",
     "BeamStateContext",
@@ -57,6 +75,17 @@ __all__ = [
     "default_candidate_heuristic",
     "default_beam_priority",
     "align_trees_sparse_candidates",
+    "align_trees_sparse_chain",
+    "align_scored_sparse_chain",
+    "FastLabelEncoder",
+    "FastTreePathMatcher",
+    "EncodedTreeEquality",
+    "EncodedTreeOverlap",
+    "FastSparsePreparedTree",
+    "FastSparseTreePathMatcher",
+    "prepare_fast_sparse_encoded",
+    "generate_fast_sparse_scored_candidates",
+    "align_trees_fast_sparse_prepared",
     "generate_sparse_candidates",
     "SparseCandidateConfig",
     "AlignmentResult",

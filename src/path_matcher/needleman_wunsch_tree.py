@@ -22,10 +22,12 @@ This eliminates special boundary cases at the root.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Any, Callable, List, Optional, Tuple
 
 import numpy as np
 
+from .diagnostics import MatchDiagnostics
 from .tree_data import TreeData
 
 
@@ -60,6 +62,7 @@ def align_trees_algorithm1(
     dtype: Any = np.float32,
     return_matrices: bool = False,
     prefer_match_on_tie: bool = True,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> AlignmentResult:
     """
     Compute best-matching path and score between two trees using Algorithm 1.
@@ -85,14 +88,18 @@ def align_trees_algorithm1(
     -------
     AlignmentResult
     """
+    total_start = perf_counter()
+    n, m = G.n, H.n
+    if diagnostics is not None:
+        diagnostics.reset(algorithm="exact_dense", n_g=n, n_h=m)
+
+    preprocessing_start = perf_counter()
     if w is None:
         w_fn = id_match
         w_is_id = True
     else:
         w_fn = w
         w_is_id = (w is id_match)
-
-    n, m = G.n, H.n
 
     A = np.zeros((n + 1, m + 1), dtype=dtype)
     C = np.zeros((n + 1, m + 1), dtype=np.uint8)
@@ -103,6 +110,13 @@ def align_trees_algorithm1(
     labelsG = G.label
     labelsH = H.label
 
+    if diagnostics is not None:
+        diagnostics.preprocessing_seconds = perf_counter() - preprocessing_start
+        diagnostics.dp_cells_computed = n * m
+        diagnostics.node_pair_score_evaluations = n * m
+        diagnostics.positive_candidate_pairs = 0
+
+    search_start = perf_counter()
     for U in range(1, n + 1):
         u = U - 1
         ancU = int(ancG[u])
@@ -119,6 +133,9 @@ def align_trees_algorithm1(
                 w_uv = 1.0 if (lab_u == labelsH[v]) else 0.0
             else:
                 w_uv = float(w_fn(lab_u, labelsH[v]))
+
+            if diagnostics is not None and w_uv > 0.0:
+                diagnostics.positive_candidate_pairs += 1
 
             opt3 = w_uv + A[ancU, ancV]
 
@@ -145,6 +162,10 @@ def align_trees_algorithm1(
                     A[U, V] = opt3
                     C[U, V] = 3
 
+    if diagnostics is not None:
+        diagnostics.search_seconds = perf_counter() - search_start
+
+    traceback_start = perf_counter()
     # ℓ = argmax over actual nodes: argmax A[1:,1:].
     sub = A[1:, 1:]
     flat = int(np.argmax(sub))
@@ -174,6 +195,12 @@ def align_trees_algorithm1(
             raise RuntimeError(f"Invalid traceback state C[{U},{V}]={choice}")
 
     path_rev.reverse()
+
+    if diagnostics is not None:
+        diagnostics.traceback_seconds = perf_counter() - traceback_start
+        diagnostics.result_score = score
+        diagnostics.result_length = len(path_rev)
+        diagnostics.total_seconds = perf_counter() - total_start
 
     if return_matrices:
         return AlignmentResult(path_internal=path_rev, score=score, end_internal=(U_star - 1, V_star - 1), A=A, C=C)
@@ -215,6 +242,7 @@ def _align_tree_to_repeating_template_penalized(
     return_matrices: bool,
     prefer_match_on_tie: bool,
     repeat_penalty: float,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> AlignmentResult:
     """
     Penalized template-repeat alignment.
@@ -224,8 +252,12 @@ def _align_tree_to_repeating_template_penalized(
     It is used when repeat_penalty > 0. The unpenalized case below keeps the
     one-matrix implementation as close as possible to align_trees_algorithm1.
     """
+    total_start = perf_counter()
     n, m = G.n, H.n
+    if diagnostics is not None:
+        diagnostics.reset(algorithm="exact_template_repeat_penalized", n_g=n, n_h=m)
 
+    preprocessing_start = perf_counter()
     # F[U,V] is the usual best score using tree ancestors up to U and template
     # prefix up to V. R[U,V] is the best score whose last matched template state
     # is exactly V, so matching V again is a true repetition.
@@ -239,6 +271,13 @@ def _align_tree_to_repeating_template_penalized(
     labelsG = G.label
     labelsH = H.label
 
+    if diagnostics is not None:
+        diagnostics.preprocessing_seconds = perf_counter() - preprocessing_start
+        diagnostics.dp_cells_computed = n * m
+        diagnostics.node_pair_score_evaluations = n * m
+        diagnostics.positive_candidate_pairs = 0
+
+    search_start = perf_counter()
     for U in range(1, n + 1):
         u = U - 1
         ancU = int(ancG[u])
@@ -252,6 +291,9 @@ def _align_tree_to_repeating_template_penalized(
                 w_uv = 1.0 if (lab_u == labelsH[v]) else 0.0
             else:
                 w_uv = float(w_fn(lab_u, labelsH[v]))
+
+            if diagnostics is not None and w_uv > 0.0:
+                diagnostics.positive_candidate_pairs += 1
 
             # Exact-last-template state R.
             opt_skip_exact = R[ancU, V]
@@ -309,6 +351,10 @@ def _align_tree_to_repeating_template_penalized(
                     F[U, V] = opt3
                     CF[U, V] = 3
 
+    if diagnostics is not None:
+        diagnostics.search_seconds = perf_counter() - search_start
+
+    traceback_start = perf_counter()
     sub = F[1:, 1:]
     flat = int(np.argmax(sub))
     U_star = flat // m + 1
@@ -347,6 +393,12 @@ def _align_tree_to_repeating_template_penalized(
 
     path_rev.reverse()
 
+    if diagnostics is not None:
+        diagnostics.traceback_seconds = perf_counter() - traceback_start
+        diagnostics.result_score = score
+        diagnostics.result_length = len(path_rev)
+        diagnostics.total_seconds = perf_counter() - total_start
+
     if return_matrices:
         # A is the public score table. C is the prefix-state choice table; the
         # exact-last-template choice table CR is intentionally internal.
@@ -363,6 +415,7 @@ def align_tree_to_repeating_template(
     return_matrices: bool = False,
     prefer_match_on_tie: bool = True,
     repeat_penalty: float = 0.0,
+    diagnostics: Optional[MatchDiagnostics] = None,
 ) -> AlignmentResult:
     """
     Align a tree path in G to a path template H with repeatable template states.
@@ -424,10 +477,15 @@ def align_tree_to_repeating_template(
             return_matrices=return_matrices,
             prefer_match_on_tie=prefer_match_on_tie,
             repeat_penalty=repeat_penalty,
+            diagnostics=diagnostics,
         )
 
+    total_start = perf_counter()
     n, m = G.n, H.n
+    if diagnostics is not None:
+        diagnostics.reset(algorithm="exact_template_repeat", n_g=n, n_h=m)
 
+    preprocessing_start = perf_counter()
     A = np.zeros((n + 1, m + 1), dtype=dtype)
     C = np.zeros((n + 1, m + 1), dtype=np.uint8)
 
@@ -437,6 +495,13 @@ def align_tree_to_repeating_template(
     labelsG = G.label
     labelsH = H.label
 
+    if diagnostics is not None:
+        diagnostics.preprocessing_seconds = perf_counter() - preprocessing_start
+        diagnostics.dp_cells_computed = n * m
+        diagnostics.node_pair_score_evaluations = n * m
+        diagnostics.positive_candidate_pairs = 0
+
+    search_start = perf_counter()
     for U in range(1, n + 1):
         u = U - 1
         ancU = int(ancG[u])
@@ -453,6 +518,9 @@ def align_tree_to_repeating_template(
                 w_uv = 1.0 if (lab_u == labelsH[v]) else 0.0
             else:
                 w_uv = float(w_fn(lab_u, labelsH[v]))
+
+            if diagnostics is not None and w_uv > 0.0:
+                diagnostics.positive_candidate_pairs += 1
 
             # Template-repeat match: consume the tree vertex but leave the
             # template vertex fixed. This is the only recurrence difference from
@@ -482,6 +550,10 @@ def align_tree_to_repeating_template(
                     A[U, V] = opt3
                     C[U, V] = 3
 
+    if diagnostics is not None:
+        diagnostics.search_seconds = perf_counter() - search_start
+
+    traceback_start = perf_counter()
     # ℓ = argmax over actual nodes: argmax A[1:,1:].
     sub = A[1:, 1:]
     flat = int(np.argmax(sub))
@@ -508,6 +580,12 @@ def align_tree_to_repeating_template(
             raise RuntimeError(f"Invalid traceback state C[{U},{V}]={choice}")
 
     path_rev.reverse()
+
+    if diagnostics is not None:
+        diagnostics.traceback_seconds = perf_counter() - traceback_start
+        diagnostics.result_score = score
+        diagnostics.result_length = len(path_rev)
+        diagnostics.total_seconds = perf_counter() - total_start
 
     if return_matrices:
         return AlignmentResult(path_internal=path_rev, score=score, end_internal=(U_star - 1, V_star - 1), A=A, C=C)
