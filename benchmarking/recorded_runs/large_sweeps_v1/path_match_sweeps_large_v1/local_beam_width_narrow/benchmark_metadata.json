@@ -1,0 +1,287 @@
+{
+  "algorithm_order_seed": 20260928,
+  "algorithm_order_strategy": "isolated_subprocesses_with_seeded_scheduling_order",
+  "algorithms": [
+    {
+      "compatible_score_modes": [
+        "equality",
+        "overlap",
+        "jaccard"
+      ],
+      "description": "Exact product-poset maximum-chain solver over exhaustive positive blocking candidates.",
+      "exact": true,
+      "family": "generic_sparse",
+      "kwargs": {
+        "method": "sparse_chain"
+      },
+      "name": "sparse_chain"
+    },
+    {
+      "compatible_score_modes": [
+        "equality",
+        "overlap",
+        "jaccard"
+      ],
+      "description": "Algorithm 6: score-ranked local-transition beam with all children by default.",
+      "exact": false,
+      "family": "generic",
+      "kwargs": {
+        "beam_local_child_cap": null,
+        "beam_width": 25,
+        "method": "beam_local"
+      },
+      "name": "local_B25"
+    },
+    {
+      "compatible_score_modes": [
+        "equality",
+        "overlap",
+        "jaccard"
+      ],
+      "description": "Algorithm 6: score-ranked local-transition beam with all children by default.",
+      "exact": false,
+      "family": "generic",
+      "kwargs": {
+        "beam_local_child_cap": null,
+        "beam_width": 50,
+        "method": "beam_local"
+      },
+      "name": "local_B50"
+    },
+    {
+      "compatible_score_modes": [
+        "equality",
+        "overlap",
+        "jaccard"
+      ],
+      "description": "Algorithm 6: score-ranked local-transition beam with all children by default.",
+      "exact": false,
+      "family": "generic",
+      "kwargs": {
+        "beam_local_child_cap": null,
+        "beam_width": 100,
+        "method": "beam_local"
+      },
+      "name": "local_B100"
+    },
+    {
+      "compatible_score_modes": [
+        "equality",
+        "overlap",
+        "jaccard"
+      ],
+      "description": "Algorithm 6: score-ranked local-transition beam with all children by default.",
+      "exact": false,
+      "family": "generic",
+      "kwargs": {
+        "beam_local_child_cap": null,
+        "beam_width": 200,
+        "method": "beam_local"
+      },
+      "name": "local_B200"
+    },
+    {
+      "compatible_score_modes": [
+        "equality",
+        "overlap",
+        "jaccard"
+      ],
+      "description": "Algorithm 6: score-ranked local-transition beam with all children by default.",
+      "exact": false,
+      "family": "generic",
+      "kwargs": {
+        "beam_local_child_cap": null,
+        "beam_width": 400,
+        "method": "beam_local"
+      },
+      "name": "local_B400"
+    },
+    {
+      "compatible_score_modes": [
+        "equality",
+        "overlap",
+        "jaccard"
+      ],
+      "description": "Algorithm 6: score-ranked local-transition beam with all children by default.",
+      "exact": false,
+      "family": "generic",
+      "kwargs": {
+        "beam_local_child_cap": null,
+        "beam_width": 800,
+        "method": "beam_local"
+      },
+      "name": "local_B800"
+    }
+  ],
+  "config": {
+    "algorithm_order_seed": 20260928,
+    "algorithms": [
+      "sparse_chain",
+      {
+        "alias": "local_B25",
+        "kwargs": {
+          "beam_width": 25
+        },
+        "name": "beam_local"
+      },
+      {
+        "alias": "local_B50",
+        "kwargs": {
+          "beam_width": 50
+        },
+        "name": "beam_local"
+      },
+      {
+        "alias": "local_B100",
+        "kwargs": {
+          "beam_width": 100
+        },
+        "name": "beam_local"
+      },
+      {
+        "alias": "local_B200",
+        "kwargs": {
+          "beam_width": 200
+        },
+        "name": "beam_local"
+      },
+      {
+        "alias": "local_B400",
+        "kwargs": {
+          "beam_width": 400
+        },
+        "name": "beam_local"
+      },
+      {
+        "alias": "local_B800",
+        "kwargs": {
+          "beam_width": 800
+        },
+        "name": "beam_local"
+      }
+    ],
+    "exact_score_abs_tol": 1e-05,
+    "exact_score_rel_tol": 1e-06,
+    "execution_mode": "isolated",
+    "max_dense_cells": 12000000,
+    "max_sparse_posting_hits": 50000000,
+    "quality_floor": 0.99,
+    "regimes": [
+      {
+        "alphabet_size": 20,
+        "comparison": "tree_path",
+        "depth_g": 250,
+        "expected_algorithm": "beam_local_capped",
+        "n_g": 10000,
+        "n_h": 180,
+        "n_instances": 5,
+        "name": "local_beam_width_narrow",
+        "notes": "A narrow observed tree and short template path favor local transitions; the cap is expected to remove occasional high-degree bursts.",
+        "p_obs_g": 0.9,
+        "p_obs_h": 0.9,
+        "planted_length": 24,
+        "score_mode": "jaccard",
+        "seed": 1105,
+        "shape_g": "narrow",
+        "shape_h": "path",
+        "symbol_distribution": "uniform",
+        "symbols_per_node": {
+          "kind": "categorical",
+          "probs": [
+            0.75,
+            0.25
+          ],
+          "values": [
+            1,
+            2
+          ]
+        },
+        "weight_mode": "uniform"
+      }
+    ],
+    "repeats": 3,
+    "suite_name": "path_match_scaling_and_beam_sweeps_large_v1__local_beam_width_narrow",
+    "thread_count": 1,
+    "timeout_seconds": 1200,
+    "warmup": 1
+  },
+  "config_hash": "pathmatch_f74e86e08ca7",
+  "environment": {
+    "cpu_count": 24,
+    "machine": "x86_64",
+    "numba_version": "0.67.0",
+    "numpy_version": "2.5.3",
+    "pandas_version": "3.0.6",
+    "platform": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:16:10) [GCC 11.2.0]",
+    "thread_environment": {
+      "MKL_NUM_THREADS": null,
+      "NUMBA_NUM_THREADS": null,
+      "OMP_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
+    }
+  },
+  "exact_score_abs_tol": 1e-05,
+  "exact_score_rel_tol": 1e-06,
+  "execution_mode": "isolated",
+  "generation_seconds": 0.6632921730342787,
+  "max_dense_cells": 12000000,
+  "max_sparse_posting_hits": 50000000,
+  "quality_floor": 0.99,
+  "regimes": [
+    {
+      "alphabet_size": 20,
+      "comparison": "tree_path",
+      "depth_g": 250,
+      "depth_h": null,
+      "expected_algorithm": "beam_local_capped",
+      "max_token_weight": 8.0,
+      "n_g": 10000,
+      "n_h": 180,
+      "n_instances": 5,
+      "name": "local_beam_width_narrow",
+      "notes": "A narrow observed tree and short template path favor local transitions; the cap is expected to remove occasional high-degree bursts.",
+      "p_obs_g": 0.9,
+      "p_obs_h": 0.9,
+      "planted_distinct_tokens": null,
+      "planted_length": 24,
+      "planted_path_selection": "random_leaf",
+      "planted_position_mode": "even",
+      "planted_tail_fraction": 0.2,
+      "planted_token_policy": "background",
+      "reserved_token_weight": 4.0,
+      "score_mode": "jaccard",
+      "seed": 1105,
+      "shape_g": "narrow",
+      "shape_h": "path",
+      "symbol_distribution": "uniform",
+      "symbols_per_node": {
+        "kind": "categorical",
+        "probs": [
+          0.75,
+          0.25
+        ],
+        "values": [
+          1,
+          2
+        ]
+      },
+      "weight_mode": "uniform",
+      "zipf_exponent": 1.3
+    }
+  ],
+  "repeats": 3,
+  "suite_name": "path_match_scaling_and_beam_sweeps_large_v1__local_beam_width_narrow",
+  "thread_count": 1,
+  "thread_settings_enforced": true,
+  "timeout_seconds": 1200.0,
+  "timing_semantics": {
+    "cold_predict_seconds": "first diagnostics-disabled prediction in a fresh worker before diagnostic or warm-up calls",
+    "fresh_process_total_seconds": "complete isolated worker wall time including startup, imports, cold pass, diagnostics, setup, warm-up, repeats, and serialization",
+    "peak_rss_mib": "lifetime worker peak RSS, including runtime and imported libraries",
+    "predict_seconds_median": "median diagnostics-disabled prediction after configured warm-up",
+    "setup_plus_warm_search_seconds": "pair fit/setup plus median warm prediction"
+  },
+  "warmup": 1
+}
